@@ -31,7 +31,8 @@ docs/
   database_schema.md   Cấu trúc kho IndexedDB và file sao lưu
   supabase_schema.sql  Gợi ý bảng PostgreSQL/Supabase khi chuyển lên dùng chung nhiều máy
 deploy/nginx.conf    Cấu hình nginx dùng trong Docker image
-Dockerfile           Dựng trang rồi phục vụ bằng nginx (dùng cho Coolify)
+Dockerfile           Dựng trang rồi phục vụ bằng nginx
+docker-compose.yml   Service `app`, chỉ `expose` cổng 80 (dùng cho Coolify)
 ```
 
 `dist/` là thư mục kết quả, không đưa lên git:
@@ -51,16 +52,18 @@ Mở `dist/index.html` bằng Chrome hoặc Edge (cần Internet để tải th�
 ## Deploy lên Coolify
 1. Đẩy repo lên GitHub.
 2. Trong Coolify: **New Resource → Public/Private Repository** → chọn repo, nhánh `main`.
-3. **Build Pack: Dockerfile** (file `Dockerfile` ở thư mục gốc). **Ports Exposes: `80`**.
-4. Gắn domain rồi **Deploy**. Mỗi lần push lên `main`, bật **Auto Deploy** để Coolify tự dựng lại.
+3. **Build Pack: Docker Compose** (file `docker-compose.yml` ở thư mục gốc).
+4. Ở service `app`, gắn domain (cổng `80`) rồi **Deploy**. Bật **Auto Deploy** để mỗi lần push lên `main` Coolify tự dựng lại.
 
+`docker-compose.yml` chỉ dùng `expose: 80`, không có `ports:`, nên container không chiếm port nào trên host và không thể trùng port với ứng dụng khác; Coolify (Traefik) định tuyến domain vào cổng nội bộ.
 Không cần biến môi trường. Container có healthcheck tại `/healthz`.
 
-Chạy thử image trên máy:
+Chạy thử trên máy (vì không publish port, truy cập bằng cách tạm map cổng):
 ```
-docker build -t gom-vu-gia .
-docker run --rm -p 8080:80 gom-vu-gia     # mở http://localhost:8080
+docker compose up -d --build
+docker compose run --rm --no-deps -p 8080:80 app   # hoặc: docker run --rm -p 8080:80 gom-vu-gia:latest
 ```
+Mở http://localhost:8080. Dừng bằng `docker compose down`.
 
 ## Dữ liệu thật của bạn nằm ở đâu
 Ứng dụng lưu dữ liệu **trong trình duyệt của từng máy** (IndexedDB), gắn với **địa chỉ trang**.

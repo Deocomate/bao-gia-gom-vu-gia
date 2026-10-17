@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gom-vu-gia:latest
+    restart: unless-stopped
+    # Chỉ expose cổng nội bộ, không publish ra host nên không bao giờ trùng port trên server.
+    # Coolify (Traefik) tự định tuyến domain tới cổng 80 của container này.
+    expose:
+      - "80"
