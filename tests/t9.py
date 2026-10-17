@@ -1,0 +1,16 @@
+from common import *
+with sync_playwright() as p:
+    ctx, page, errs = new_ctx(p, user_dir=os.path.join(OUT, "profile3"), w=1860, h=900)
+    page.goto(URL); page.wait_for_timeout(800)
+    page.click("#tab-builder"); page.wait_for_timeout(400)
+    page.evaluate("S.draft.items=[];renderItems()")
+    page.select_option("#cat-group", label="BÁT HƯƠNG LIÊN HOA"); page.wait_for_timeout(300)
+    print("lọc nhóm:", page.locator(".pcard").count(), page.eval_on_selector_all(".pcard h4","e=>e.slice(0,3).map(x=>x.textContent)"))
+    page.locator(".pcard [data-act=c-add]").last.click(); page.wait_for_timeout(300)
+    page.locator(".pcard h4").first.click(); page.wait_for_timeout(300)
+    page.select_option("#cat-group", index=0); page.fill("#cat-q","BÁT HƯƠNG"); page.wait_for_timeout(400)
+    page.locator(".pcard").nth(4).locator("[data-act=c-glaze]").nth(1).click()
+    page.locator(".pcard").nth(4).locator("button[data-act=c-add]").click(); page.wait_for_timeout(300)
+    print("dòng:", page.evaluate("S.draft.items.map(l=>l.name+' '+l.size+' | '+l.glaze+' x'+l.qty+' @'+l.price)"), errs)
+    page.screenshot(path=f"{SHOT}/51_fixed.png")
+    ctx.close()

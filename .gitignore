@@ -1,0 +1,22 @@
+# Bản dựng (Dockerfile tự tạo lại khi deploy)
+dist/
+
+# Kết quả chạy test
+tests/.output/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Môi trường / bí mật
+.env
+.env.*
+
+# Hệ điều hành / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
