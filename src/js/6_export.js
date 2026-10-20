@@ -1,8 +1,7 @@
 /* ===================== XUẤT PDF / PNG / IN ===================== */
 function slug(s) { return noDia(s).replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || "bao_gia"; }
 function fileBase(d) {
-  const demo = S.ws === "demo" ? "DU-LIEU-MAU_" : "";
-  return d.kind === "quote" && d.quoteCode ? `${demo}Bao_gia_${d.quoteCode}_${slug(d.customer.name)}` : `${demo}Bo_ban_tho_${slug(d.name)}_${todayISO()}`;
+  return d.kind === "quote" && d.quoteCode ? `Bao_gia_${d.quoteCode}_${slug(d.customer.name)}` : `Bo_ban_tho_${slug(d.name)}_${todayISO()}`;
 }
 function xpParts(d) {
   const c = calc(d), isQ = d.kind === "quote";

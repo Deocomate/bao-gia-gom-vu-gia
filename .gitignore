@@ -1,6 +1,10 @@
 # Bản dựng (Dockerfile tự tạo lại khi deploy)
 dist/
 
+# Dữ liệu máy chủ khi chạy trên máy, file dữ liệu xuất ra (giá, ảnh, báo giá)
+var/
+exports/
+
 # Kết quả chạy test
 tests/.output/
 
@@ -13,6 +17,7 @@ venv/
 # Môi trường / bí mật
 .env
 .env.*
+!.env.example
 
 # Hệ điều hành / editor
 .DS_Store

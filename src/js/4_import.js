@@ -288,7 +288,6 @@ async function impApply() {
     if (m.status >= 0 && v.status) p.active = parseStatus(v.status);
     p.price = v.pr.ok ? (v.pr.value == null ? (ex ? ex.price ?? null : null) : v.pr.value) : (ex ? ex.price ?? null : null);
     p.updatedAt = now;
-    if (S.ws === "demo") p.demo = true;
     out.set(p.code, p);
   }
   busy("Đang lưu bảng giá…");

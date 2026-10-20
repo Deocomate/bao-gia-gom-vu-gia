@@ -18,14 +18,14 @@ with sync_playwright() as p:
     with page.expect_download(timeout=60000) as dl:
         page.click("[data-act=backup]")
     dl.value.save_as(os.path.join(OUT, "backup.json"))
-    import json; b = json.load(open(os.path.join(OUT, "backup.json")))
+    import json; b = json.load(open(os.path.join(OUT, "backup.json"), encoding="utf-8"))
     print("backup:", len(b["products"]), len(b["records"]), len(b["images"]), [len(i["data"]) for i in b["images"]][:3])
     ctx.close()
     # Khôi phục vào hồ sơ trống
-    ctx, page, errs2 = new_ctx(p, user_dir=os.path.join(OUT, "profile2"), fresh=True)
+    ctx, page, errs2 = new_ctx(p, user_dir=os.path.join(OUT, "profile2"), fresh=True, seed=False)
     page.goto(URL); page.wait_for_timeout(800)
     page.click("#tab-data"); page.wait_for_timeout(300)
-    page.click("[data-act=restore]")
+    page.click("#view-data [data-act=restore]")
     page.set_input_files("#file-any", os.path.join(OUT, "backup.json")); page.wait_for_timeout(400)
     page.click(".modal-f button:has-text('Thay thế toàn bộ')"); page.wait_for_timeout(1200)
     print("khôi phục:", page.evaluate("[S.products.size, S.records.size]"), "gốc:", before, toasts(page)[-1:])
@@ -33,12 +33,13 @@ with sync_playwright() as p:
     page.click("#tab-templates"); page.wait_for_timeout(800)
     print("ảnh sau khôi phục:", page.evaluate("[...document.querySelectorAll('.tc-img img')].length"))
     page.screenshot(path=f"{SHOT}/24_templates_restored.png")
-    # Dữ liệu mẫu: kho riêng
-    page.click("#tab-data"); page.click("[data-act=demo]"); page.wait_for_timeout(1500)
-    print("demo:", page.evaluate("[S.ws, S.products.size, S.records.size, DB.name()]"), page.is_visible("#demo-ribbon"))
-    page.screenshot(path=f"{SHOT}/25_demo.png")
-    page.click("#exit-demo"); page.wait_for_timeout(1200)
-    print("về thật:", page.evaluate("[S.ws, S.products.size, S.records.size, [...S.products.values()].some(p=>p.demo)]"))
+    page.click("#tab-data"); page.wait_for_timeout(400)
+    page.screenshot(path=f"{SHOT}/25_data_restored.png")
+    print("nhãn sao lưu:", page.text_content("#store-chip-text"))
+    # Đăng xuất → về trang đăng nhập, API từ chối
+    page.click("#logout"); page.wait_for_timeout(800)
+    print("đăng xuất:", page.url.rsplit("/", 1)[-1], ctx.request.get(BASE + "/api/me").status)
+    page.fill("#u", ADMIN[0]); page.fill("#p", ADMIN[1]); page.click("#b"); page.wait_for_timeout(1200)
     # Điện thoại
     page.set_viewport_size({"width": 390, "height": 844}); page.wait_for_timeout(300)
     page.click("#tab-builder"); page.wait_for_timeout(500)

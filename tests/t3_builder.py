@@ -10,7 +10,7 @@ def add(page, name, size=None, glaze="Men lam vẽ vàng", qty=None):
     if glaze: c.locator(f"[data-act=c-glaze][data-v='{glaze}']").click()
     c = card(page, name).first
     if qty: c.locator("[data-cqty]").fill(str(qty))
-    c.locator("[data-act=c-add]").click(); page.wait_for_timeout(120)
+    c.locator("button[data-act=c-add]").click(); page.wait_for_timeout(120)
 def totals(page):
     return page.evaluate("(()=>{const c=calc(S.draft);return [c.subtotal,c.discount,c.total,c.missing,document.querySelector('#t-total').textContent,document.querySelector('#t-prov').textContent]})()")
 
@@ -102,7 +102,7 @@ with sync_playwright() as p:
         page.click("[data-act=pdf]")
     d = dl.value; d.save_as(os.path.join(OUT, "out_quote.pdf")); print("PDF:", d.suggested_filename)
     with page.expect_download(timeout=60000) as dl:
-        page.click("[data-act=png]")
+        more(page, "png")
     d = dl.value; d.save_as(os.path.join(OUT, "out_quote.png")); print("PNG:", d.suggested_filename)
     page.click("[data-act=save-quote]"); page.wait_for_timeout(400)
     print("đã lưu cập nhật:", page.evaluate(f"calc(S.records.get('{qid}')).total"))

@@ -2,24 +2,21 @@
   <div class="appbar-in wrap">
     <div class="brand"><img class="logo lt" src="__LOGO_BROWN__" alt="Gốm Vũ Gia"><img class="logo dk" src="__LOGO_CREAM__" alt="Gốm Vũ Gia"><small>Báo giá đồ thờ</small></div>
     <nav class="tabs" role="tablist" aria-label="Các mục">
-      <button class="tab" role="tab" data-view="prices" id="tab-prices">Quản lý bảng giá</button>
       <button class="tab" role="tab" data-view="builder" id="tab-builder">Tạo bộ ban thờ</button>
-      <button class="tab" role="tab" data-view="templates" id="tab-templates">Mẫu ban thờ</button>
       <button class="tab" role="tab" data-view="quotes" id="tab-quotes">Báo giá khách hàng</button>
+      <button class="tab" role="tab" data-view="templates" id="tab-templates">Mẫu ban thờ</button>
+      <button class="tab" role="tab" data-view="prices" id="tab-prices">Bảng giá</button>
       <button class="tab" role="tab" data-view="data" id="tab-data">Sao lưu</button>
     </nav>
-    <button class="store-chip" id="store-chip" data-view="data" title="Nơi lưu dữ liệu"><i></i><span id="store-chip-text">Lưu trên trình duyệt này</span></button>
+    <button class="store-chip" id="store-chip" data-view="data" title="Dữ liệu lưu trên máy chủ – bấm để sao lưu"><i></i><span id="store-chip-text">Đang mở…</span></button>
+    <div class="who"><span id="user-name"></span><button class="btn sm ghost" id="logout" type="button">Đăng xuất</button></div>
   </div>
 </header>
-<div class="demo-ribbon" id="demo-ribbon" hidden>
-  <div class="wrap"><strong>ĐANG XEM DỮ LIỆU MẪU</strong><span>Bảng giá, mẫu và báo giá ở đây chỉ để dùng thử, lưu riêng, không trộn vào bảng giá thật.</span>
-  <button class="btn sm" id="exit-demo">Thoát dữ liệu mẫu</button></div>
-</div>
 <main class="wrap">
-  <section id="view-prices" hidden></section>
   <section id="view-builder" hidden></section>
-  <section id="view-templates" hidden></section>
   <section id="view-quotes" hidden></section>
+  <section id="view-templates" hidden></section>
+  <section id="view-prices" hidden></section>
   <section id="view-data" hidden></section>
 </main>
 <div id="modal-root"></div>

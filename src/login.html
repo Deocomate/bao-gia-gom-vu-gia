@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#92431E">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>Đăng nhập – Báo giá Gốm Vũ Gia</title>
+__FONTS__
+<style>
+:root{--brand:#92431E;--paper:#FBF7F1;--surface:#fff;--ink:#2A1D16;--muted:#6E5D52;--line:#E6D9CB;--danger:#B3261E;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--paper);color:var(--ink);font:15px/1.5 "Be Vietnam Pro",system-ui,sans-serif}
+.card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 24px;box-shadow:0 8px 30px rgba(60,30,10,.08)}
+.logo{display:block;height:48px;width:auto;margin:0 auto 6px}
+.sub{text-align:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 22px}
+label{display:block;font-weight:600;font-size:13.5px;margin:0 0 6px}
+input{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);margin:0 0 14px}
+input:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:var(--brand)}
+button{width:100%;font:inherit;font-weight:600;padding:11px;border:0;border-radius:8px;background:var(--brand);color:#fff;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+.err{min-height:20px;color:var(--danger);font-size:13.5px;margin:0 0 10px}
+</style>
+</head>
+<body>
+<form class="card" id="f" novalidate>
+  <img class="logo" src="__LOGO_BROWN__" alt="Gốm Vũ Gia">
+  <p class="sub">Báo giá đồ thờ – quản trị</p>
+  <label for="u">Tên đăng nhập</label>
+  <input id="u" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+  <label for="p">Mật khẩu</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <p class="err" id="err" role="alert"></p>
+  <button id="b" type="submit">Đăng nhập</button>
+</form>
+<script>
+document.getElementById("f").onsubmit = async e => {
+  e.preventDefault();
+  const b = document.getElementById("b"), err = document.getElementById("err");
+  const username = document.getElementById("u").value.trim(), password = document.getElementById("p").value;
+  if (!username || !password) { err.textContent = "Hãy nhập tên đăng nhập và mật khẩu"; return; }
+  b.disabled = true; err.textContent = "";
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json", "X-GVG": "1" }, body: JSON.stringify({ username, password }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) return location.replace("/");
+    err.textContent = j.error || "Đăng nhập không thành công";
+  } catch { err.textContent = "Không kết nối được máy chủ"; }
+  b.disabled = false;
+};
+</script>
+</body>
+</html>

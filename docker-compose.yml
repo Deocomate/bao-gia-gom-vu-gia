@@ -5,7 +5,17 @@ services:
       dockerfile: Dockerfile
     image: gom-vu-gia:latest
     restart: unless-stopped
+    # Tài khoản admin duy nhất: đặt trong file .env (chạy trên máy) hoặc mục Environment Variables của Coolify
+    environment:
+      - ADMIN_USERNAME=${ADMIN_USERNAME:?Cần đặt ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Cần đặt ADMIN_PASSWORD}
+    # Dữ liệu (SQLite + bản chụp trước khi khôi phục) nằm trong volume, giữ nguyên qua các lần deploy
+    volumes:
+      - gvg-data:/data
     # Chỉ expose cổng nội bộ, không publish ra host nên không bao giờ trùng port trên server.
     # Coolify (Traefik) tự định tuyến domain tới cổng 80 của container này.
     expose:
       - "80"
+
+volumes:
+  gvg-data:

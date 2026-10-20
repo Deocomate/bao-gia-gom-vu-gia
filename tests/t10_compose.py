@@ -6,7 +6,7 @@ if not os.path.isdir(PROD):
 with sync_playwright() as p:
     ctx, page, errs = new_ctx(p, user_dir=os.path.join(OUT, "profile4"), fresh=True)
     page.goto(URL); page.wait_for_timeout(800)
-    page.click("#view-prices [data-act=demo]"); page.wait_for_timeout(1500)
+    page.evaluate("openRecord('tpl_phuc_lien_hoa')"); page.wait_for_timeout(1000)
     page.click("[data-act=compose]"); page.wait_for_timeout(1200)
     print("status:", page.text_content("#cmp-status"))
     for i in range(20):

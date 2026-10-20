@@ -97,46 +97,44 @@ async function loadAll() {
 }
 async function boot() {
   try { S.framed = window.self !== window.top; } catch { S.framed = true; }
-  try { S.ws = localStorage.getItem("gvg_ws") === "demo" ? "demo" : "real"; } catch { S.ws = "real"; }
-  await openWorkspace();
-  bindGlobal();
-  let v = "prices";
-  try { v = localStorage.getItem("gvg_view") || (S.products.size ? "builder" : "prices"); } catch { }
-  if (!S.products.size && !S.records.size) v = "prices";
-  show(v, true);
-  getDownloads();
-  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch { }
-}
-async function openWorkspace() {
-  DB.close();
+  try { localStorage.removeItem("gvg_ws"); } catch { }
   try {
-    await DB.open();
-    S.dbOK = true;
-    if (S.ws === "demo") await ensureDemoSeed();
+    const me = await DB.open();
+    $("#user-name").textContent = me.user;
     await loadAll();
   } catch (e) {
     S.dbOK = false;
     S.meta = { groups: [], counters: {}, priceVersion: 0 }; S.draft = newDraft();
-    toast("Không mở được kho lưu trữ của trình duyệt: " + errMsg(e) + ". Dữ liệu sẽ không được lưu.", "bad", 9000);
+    toast("Không tải được dữ liệu từ máy chủ: " + errMsg(e) + ". Hãy tải lại trang.", "bad", 9000);
   }
-  $("#demo-ribbon").hidden = S.ws !== "demo";
-  $("#store-chip").classList.toggle("bad", !S.dbOK);
-  $("#store-chip-text").textContent = S.dbOK ? (S.ws === "demo" ? "Dữ liệu mẫu – lưu riêng" : "Lưu trên trình duyệt này") : "Không lưu được";
+  bindGlobal();
+  let v = "builder";
+  try { v = localStorage.getItem("gvg_view") || v; } catch { }
+  if (!S.products.size) v = "prices";
+  show(v, true);
+  updateStoreChip();
+  getDownloads();
 }
-async function switchWorkspace(ws) {
-  if (!(await leaveGuard())) return;
-  S.ws = ws;
-  try { localStorage.setItem("gvg_ws", ws); } catch { }
-  busy(ws === "demo" ? "Đang mở dữ liệu mẫu…" : "Đang mở dữ liệu thật…");
-  await openWorkspace();
-  busy();
-  S.cardSel.clear();
-  show(ws === "demo" ? "builder" : (S.products.size ? S.view : "prices"), true);
-  toast(ws === "demo" ? "Đang xem dữ liệu mẫu (lưu riêng)" : "Đã quay về dữ liệu thật");
+async function logout() {
+  if (!(await leaveGuard("logout"))) return;
+  try { await DB.req("logout", {}); } catch { }
+  location.replace("/login");
+}
+/* Nhãn góc phải: nơi lưu + nhắc sao lưu khi đã lâu chưa sao lưu */
+function backupAge() {
+  const t = S.meta?.lastBackupAt;
+  return t ? Math.floor((Date.now() - new Date(t).getTime()) / 864e5) : null;
+}
+function backupDue() { const a = backupAge(); return (S.products.size || S.records.size) && (a == null || a >= 7); }
+function updateStoreChip() {
+  const chip = $("#store-chip"), a = backupAge();
+  chip.classList.toggle("bad", !S.dbOK);
+  chip.classList.toggle("warn", S.dbOK && !!backupDue());
+  $("#store-chip-text").textContent = !S.dbOK ? "Mất kết nối máy chủ" : a == null ? "Chưa sao lưu" : a === 0 ? "Đã sao lưu hôm nay" : `Sao lưu ${a} ngày trước`;
 }
 
 /* ===================== Điều hướng ===================== */
-const VIEWS = { prices: () => renderPrices(), builder: () => renderBuilder(), templates: () => renderTemplates(), quotes: () => renderQuotes(), data: () => renderData() };
+const VIEWS = { builder: () => renderBuilder(), quotes: () => renderQuotes(), templates: () => renderTemplates(), prices: () => renderPrices(), data: () => renderData() };
 async function leaveGuard(target) {
   if (S.pe && S.pe.dirty.size && S.view === "prices" && target !== "prices") {
     const r = await choiceBox({
@@ -150,7 +148,7 @@ async function leaveGuard(target) {
   return true;
 }
 async function show(v, force) {
-  if (!VIEWS[v]) v = "prices";
+  if (!VIEWS[v]) v = "builder";
   if (!force && v === S.view) { VIEWS[v](); return; }
   if (!force && !(await leaveGuard(v))) return;
   S.view = v;
@@ -164,8 +162,9 @@ function bindGlobal() {
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-view]");
     if (t && (t.classList.contains("tab") || t.id === "store-chip" || t.dataset.go)) { e.preventDefault(); show(t.dataset.view); }
+    if (e.target.closest("#logout")) logout();
+    $$("details.menu[open]").forEach(m => { if (!m.contains(e.target)) m.open = false; });
   });
-  $("#exit-demo").onclick = () => switchWorkspace("real");
   window.addEventListener("beforeunload", e => {
     if ((S.pe && S.pe.dirty.size) || (S.draft && S.draft.id && draftDirty())) { e.preventDefault(); e.returnValue = ""; }
   });

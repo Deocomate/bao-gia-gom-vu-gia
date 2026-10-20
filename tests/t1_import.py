@@ -1,10 +1,26 @@
 from common import *
 XL = os.path.join(DATA, "Bang_gia_mau_Gom_Vu_Gia.xlsx")
 with sync_playwright() as p:
-    ctx, page, errs = new_ctx(p, fresh=True)
-    page.goto(URL); page.wait_for_timeout(800)
+    # Chưa đăng nhập: chỉ thấy trang đăng nhập, API từ chối
+    ctx, page, errs = new_ctx(p, fresh=True, seed=False, login=False)
+    page.goto(URL); page.wait_for_timeout(500)
+    print("chưa đăng nhập:", page.url.rsplit("/", 1)[-1], ctx.request.get(BASE + "/api/data/products").status)
+    page.fill("#u", "admin"); page.fill("#p", "sai-mat-khau"); page.click("#b"); page.wait_for_timeout(900)
+    print("sai mật khẩu:", page.text_content("#err"))
+    page.fill("#p", ADMIN[1]); page.click("#b"); page.wait_for_timeout(1200)
     page.screenshot(path=f"{SHOT}/01_empty.png")
-    print("empty state:", page.locator(".empty-state").count())
+    # Máy chủ trống: không tự nạp dữ liệu mẫu nào
+    print("mở lần đầu:", page.url.rsplit("/", 1)[-1] or "/", page.evaluate("[S.view, S.products.size, S.records.size, $('#user-name').textContent]"), toasts(page))
+    # Nạp file dữ liệu xuất cho production (tools/export_data.py) qua giao diện
+    xp = os.path.join(OUT, "du-lieu.json")
+    with open(xp, "w", encoding="utf-8") as f: json.dump(export_data.build(), f, ensure_ascii=False)
+    page.click("#view-prices [data-act=restore]"); page.set_input_files("#file-any", xp); page.wait_for_timeout(400)
+    page.click(".modal-f button:has-text('Thay thế toàn bộ')"); page.wait_for_timeout(1500)
+    print("nạp dữ liệu:", page.evaluate("[S.view, S.products.size, [...S.records.values()].map(r=>r.kind+':'+r.name)]"), toasts(page)[-1:])
+    # Làm trống bảng giá (giữ mẫu) để thử luồng nhập Excel từ đầu
+    page.evaluate("DB.run(['products'],'readwrite',t=>t.objectStore('products').clear())")
+    page.reload(); page.wait_for_timeout(800)
+    print("bảng giá trống:", page.evaluate("[S.view, S.products.size]"))
     # Nhập file
     page.click("#view-prices [data-act=import] >> nth=0")
     page.set_input_files("#imp-file", XL)

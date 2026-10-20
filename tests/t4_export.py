@@ -21,7 +21,7 @@ with sync_playwright() as p:
         page.click("[data-act=pdf]")
     dl.value.save_as(os.path.join(OUT, "q_long.pdf"))
     with page.expect_download(timeout=90000) as dl:
-        page.click("[data-act=png]")
+        more(page, "png")
     dl.value.save_as(os.path.join(OUT, "q_long.png"))
     # Bản in: dựng trang vào #print-root rồi in ra PDF bằng chế độ in của Chromium
     page.evaluate("(async()=>{const pages=await buildExport(S.draft,false); const root=document.querySelector('#print-root'); root.innerHTML=''; pages.forEach(p=>root.appendChild(p));})()")
@@ -38,4 +38,3 @@ with sync_playwright() as p:
     page.screenshot(path=f"{SHOT}/13_preview.png")
     print("errs:", errs)
     ctx.close()
-EOF_PLACEHOLDER = 1

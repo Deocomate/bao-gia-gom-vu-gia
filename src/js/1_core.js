@@ -19,6 +19,7 @@ const ICON = {
   down: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>',
   x: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   swap: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>',
+  edit: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
   img: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>',
   upload: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>',
   vase: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v3c-3 2-5 5-5 9a7 7 0 0014 0c0-4-2-7-5-9V3"/></svg>'
@@ -53,52 +54,41 @@ const DEFAULT_GROUPS = ["Bát hương", "Lọ lộc bình", "Chóe", "Mâm bồn
 const DEFAULT_GLAZES = ["Men lam thường", "Men lam vẽ vàng"];
 const DEFAULT_UNITS = ["chiếc", "đôi", "bộ", "cái"];
 const S = {
-  ws: "real", dbOK: true, products: new Map(), records: new Map(), meta: null,
+  dbOK: true, products: new Map(), records: new Map(), meta: null,
   draft: null, draftBase: "", view: "prices", imgURL: new Map(), imgMeta: new Map(),
   pe: null, peFilter: { q: "", group: "", glaze: "", size: "", status: "active" },
   cat: { q: "", group: "", glaze: "" }, cardSel: new Map(), catOpen: false, catHidden: false,
   tplQ: "", quoteQ: "", downloads: undefined, framed: false
 };
 
-/* ===================== IndexedDB ===================== */
+/* ===================== Dữ liệu trên máy chủ =====================
+   Giữ cách gọi giống IndexedDB cũ: DB.run gom các thao tác put/delete/clear rồi gửi một lần, máy chủ ghi trong một giao dịch. */
+function blobToDataURL(b) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); }); }
+function dataURLToBlob(u) { const [h, d] = u.split(","); const type = (h.match(/data:([^;]+)/) || [])[1] || "application/octet-stream"; const bin = atob(d); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type }); }
 const DB = {
-  db: null,
-  name() { return S.ws === "demo" ? "gom_vu_gia_du_lieu_mau" : "gom_vu_gia"; },
-  open() {
-    return new Promise((res, rej) => {
-      let r;
-      try { r = indexedDB.open(this.name(), 1); } catch (e) { return rej(e); }
-      r.onupgradeneeded = () => {
-        const d = r.result;
-        ["kv:k", "products:code", "records:id", "images:id"].forEach(x => { const [n, k] = x.split(":"); if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: k }); });
-      };
-      r.onsuccess = () => { this.db = r.result; res(); };
-      r.onerror = () => rej(r.error || new Error("Không mở được kho dữ liệu"));
-      r.onblocked = () => rej(new Error("Kho dữ liệu đang bị một thẻ khác giữ – hãy đóng các thẻ khác của ứng dụng"));
-    });
+  async req(path, body) {
+    let r;
+    try {
+      r = await fetch("/api/" + path, body === undefined ? { cache: "no-store" }
+        : { method: "POST", headers: { "Content-Type": "application/json", "X-GVG": "1" }, body: JSON.stringify(body) });
+    } catch { throw new Error("Không kết nối được máy chủ – kiểm tra mạng rồi thử lại"); }
+    if (r.status === 401 && path !== "login") { location.href = "/login"; throw new Error("Phiên đăng nhập đã hết hạn – hãy đăng nhập lại"); }
+    const j = await r.json().catch(() => null);
+    if (!r.ok) throw new Error((j && j.error) || `Máy chủ báo lỗi ${r.status}`);
+    return j;
   },
-  close() { try { this.db && this.db.close(); } catch { } this.db = null; },
-  run(stores, mode, fn) {
-    return new Promise((res, rej) => {
-      if (!this.db) return rej(new Error("Chưa mở được kho dữ liệu trên trình duyệt"));
-      let t, out;
-      try { t = this.db.transaction(stores, mode); } catch (e) { return rej(e); }
-      t.oncomplete = () => res(out);
-      t.onerror = () => rej(t.error || new Error("Lỗi ghi dữ liệu"));
-      t.onabort = () => rej(t.error || new Error("Ghi dữ liệu bị hủy (có thể bộ nhớ trình duyệt đã đầy)"));
-      try { out = fn(t); } catch (e) { try { t.abort(); } catch { } rej(e); }
-    });
+  open() { return this.req("me"); },
+  async run(stores, mode, fn) {
+    const ops = [];
+    const t = { objectStore: store => ({ put: obj => ops.push({ op: "put", store, obj }), delete: key => ops.push({ op: "del", store, key }), clear: () => ops.push({ op: "clear", store }) }) };
+    const out = fn(t);
+    for (const o of ops) if (o.store === "images" && o.op === "put" && o.obj.blob) { const { blob, ...rest } = o.obj; o.obj = { ...rest, data: await blobToDataURL(blob) }; }
+    await this.req("tx", { ops });
+    return out;
   },
-  getAll(store) {
-    return new Promise((res, rej) => {
-      try { const q = this.db.transaction(store).objectStore(store).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); } catch (e) { rej(e); }
-    });
-  },
-  get(store, key) {
-    return new Promise((res, rej) => {
-      try { const q = this.db.transaction(store).objectStore(store).get(key); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); } catch (e) { rej(e); }
-    });
-  },
+  imgIn(o) { if (!o || !o.data) return o; const { data, ...rest } = o; return { ...rest, blob: dataURLToBlob(data) }; },
+  async getAll(store) { const l = await this.req("data/" + store); return store === "images" ? l.map(o => this.imgIn(o)) : l; },
+  async get(store, key) { const o = await this.req(`data/${store}/${encodeURIComponent(key)}`); return store === "images" ? this.imgIn(o) : o; },
   put(store, objs) { const list = Array.isArray(objs) ? objs : [objs]; return this.run([store], "readwrite", t => { const os = t.objectStore(store); list.forEach(o => os.put(o)); }); },
   del(store, key) { return this.run([store], "readwrite", t => t.objectStore(store).delete(key)); }
 };
@@ -119,7 +109,7 @@ async function imageURL(id) {
   } catch { return null; }
 }
 function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("Không đọc được ảnh")); i.src = src; }); }
-/* Thu nhỏ ảnh lớn (giữ đúng tỷ lệ) rồi lưu vào IndexedDB */
+/* Thu nhỏ ảnh lớn (giữ đúng tỷ lệ) rồi lưu lên máy chủ */
 async function storeImageFile(file, maxSide = 2400) {
   if (!file || !/^image\//.test(file.type)) throw new Error("File không phải ảnh");
   const src = URL.createObjectURL(file);

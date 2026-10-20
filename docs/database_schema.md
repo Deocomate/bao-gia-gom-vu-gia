@@ -1,15 +1,15 @@
 # Cấu trúc dữ liệu
 
 ## Kho IndexedDB trên trình duyệt
-- Dữ liệu thật: database `gom_vu_gia` (phiên bản 1)
-- Dữ liệu mẫu: database `gom_vu_gia_du_lieu_mau` (tách riêng hoàn toàn)
+- Database `gom_vu_gia` (phiên bản 1). Kho trống khi mở lần đầu được nạp bảng giá gốc (`data/pdf_data.json`) và mẫu `tpl_phuc_lien_hoa`.
+- `gom_vu_gia_du_lieu_mau`: kho “dữ liệu mẫu” của bản cũ. Chỉ được đọc một lần để chuyển sang kho chính khi kho chính còn trống; ứng dụng không còn ghi vào kho này.
 
 | Store | Khóa | Nội dung |
 |---|---|---|
 | `products` | `code` | Mỗi dòng là một biến thể (tổ hợp tên + quy cách + dòng men) |
 | `records` | `id` | Mẫu ban thờ (`kind: "template"`) và báo giá (`kind: "quote"`) |
 | `images` | `id` | Ảnh (Blob): ảnh sản phẩm, ảnh ban thờ, ảnh ghép, ảnh nền |
-| `kv` | `k` | `meta` (nhóm, bộ đếm mã báo giá, phiên bản bảng giá) và `draft` (bộ đang soạn) |
+| `kv` | `k` | `meta` (nhóm, bộ đếm mã báo giá, phiên bản bảng giá, `lastBackupAt` – lần sao lưu gần nhất) và `draft` (bộ đang soạn) |
 
 ### products
 ```json

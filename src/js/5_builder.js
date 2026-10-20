@@ -25,14 +25,12 @@ function renderBuilder() {
     <div class="mode"><b>${esc(modeTitle(d))}</b><span id="b-status"></span></div>
     <div class="btn-row">
       <button class="btn cat-toggle" data-act="cat-open">${ICON.plus} Danh mục sản phẩm</button>
-      <button class="btn ghost" data-act="new">Bộ mới</button>
-      <button class="btn" data-act="save-tpl">Lưu mẫu</button>
-      <button class="btn primary" data-act="save-quote">Lưu báo giá</button>
-      <button class="btn" data-act="dup">Nhân bản</button>
-      <button class="btn" data-act="preview">Xem trước</button>
-      <button class="btn" data-act="pdf">Xuất PDF</button>
-      <button class="btn" data-act="png">Xuất ảnh PNG</button>
-      <button class="btn" data-act="print">In</button>
+      <button class="btn ghost" data-act="new">${ICON.plus} Bộ mới</button>
+      <span class="btn-group"><button class="btn" data-act="save-tpl">Lưu mẫu</button><button class="btn primary" data-act="save-quote">Lưu báo giá</button></span>
+      <span class="btn-group"><button class="btn" data-act="preview">Xem trước</button><button class="btn" data-act="pdf">Tải PDF</button></span>
+      <details class="menu" id="b-more"><summary class="btn">Thêm ${ICON.down}</summary>
+        <div class="menu-list" role="menu"><button role="menuitem" data-act="png">Tải ảnh PNG</button><button role="menuitem" data-act="print">In báo giá</button><button role="menuitem" data-act="dup">Nhân bản bộ này</button></div>
+      </details>
     </div>
   </div>
   <div id="b-banners"></div>
@@ -232,7 +230,7 @@ function renderItems() {
     <td><div class="row-acts">
       <button class="ibtn" data-act="up" title="Lên" ${i === 0 ? "disabled" : ""}>${ICON.up}</button><button class="ibtn" data-act="down" title="Xuống" ${i === d.items.length - 1 ? "disabled" : ""}>${ICON.down}</button>
       <button class="ibtn" data-act="swap" title="Thay sản phẩm">${ICON.swap}</button><button class="ibtn del" data-act="del" title="Xóa dòng">${ICON.x}</button></div></td></tr>`).join("");
-  $("#items-empty").innerHTML = d.items.length ? "" : `<div class="items-empty">Chưa có vật phẩm. Chọn sản phẩm ở danh mục ${S.catHidden ? '(<button class="btn sm" data-act="cat-show">Hiện danh mục</button>)' : "bên trái"} rồi bấm “Thêm vào bộ”.</div>`;
+  $("#items-empty").innerHTML = d.items.length ? "" : `<div class="items-empty">Chưa có vật phẩm. Chọn sản phẩm ở danh mục ${S.catHidden ? '(<button class="btn sm" data-act="cat-show">Hiện danh mục</button>)' : "bên trái"} rồi bấm “Thêm vào bộ”${[...S.records.values()].some(r => r.kind === "template") ? `, hoặc <button class="btn sm" data-view="templates" data-go="1">mở một mẫu có sẵn</button>` : ""}.</div>`;
   renderTotals();
   const ph = $("#photo"); if (ph && S.draft.imageId) { const stale = S.draft.imageSig != null && S.draft.imageSig !== itemsSig(S.draft); if (stale !== !!$(".stale", ph)) renderPhoto(); }
 }
@@ -252,7 +250,6 @@ function renderTotals() {
 function renderBanners() {
   const box = $("#b-banners"); if (!box) return;
   const d = S.draft, diffs = priceDiffs(d), out = [];
-  if (S.ws === "demo") out.push(`<div class="banner warn"><span class="grow">Đây là <b>dữ liệu mẫu</b>, không phải bảng giá thật.</span></div>`);
   if (diffs.length) out.push(`<div class="banner info"><span class="grow"><b>Bảng giá đã thay đổi:</b> ${diffs.length} dòng trong bộ này có giá khác bảng giá hiện tại. Giá trong bộ chưa bị thay đổi.</span><button class="btn sm primary" data-act="upd-prices">Cập nhật theo bảng giá hiện tại</button></div>`);
   box.innerHTML = out.join("");
 }
@@ -299,6 +296,7 @@ async function builderClick(e) {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const a = b.dataset.act, d = S.draft;
   const l = lineEl(e), tr = e.target.closest("tr[data-lid]");
+  const menu = b.closest("details.menu"); if (menu) menu.open = false;
   switch (a) {
     case "c-size": case "c-glaze": {
       const base = findBase(b.dataset.key); if (!base) { renderCatList(); break; } const s = cardState(base);
@@ -451,7 +449,6 @@ async function saveTemplate() {
     rec = { ...recordFromDraft(d, "template"), id: uid("tpl"), name, createdAt: now, updatedAt: now, quoteCode: "", customer: { name: "", phone: "", address: "" }, validUntil: "" };
     rec.items.forEach(l => l.lid = uid("l"));
   }
-  if (S.ws === "demo") rec.demo = true;
   await commitRecord(rec, d.kind === "template" && d.id ? "Đã lưu thay đổi mẫu" : `Đã lưu mẫu “${name}”`);
 }
 async function saveQuote() {
@@ -470,7 +467,6 @@ async function saveQuote() {
   const rec = { ...recordFromDraft(d, "quote"), ...info.fields, id: uid("q"), quoteCode: code, createdAt: now, updatedAt: now, sourceTemplateId: d.sourceTemplateId || (d.kind === "template" ? d.id : null) };
   if (!rec.name) rec.name = "Bộ đồ thờ";
   rec.items.forEach(l => l.lid = uid("l"));
-  if (S.ws === "demo") rec.demo = true;
   const c = calc(rec);
   await commitRecord(rec, `Đã lưu báo giá ${code}${c.missing ? " (tạm tính – còn sản phẩm chưa có giá)" : ""}`, { k: "meta", v: S.meta });
 }
