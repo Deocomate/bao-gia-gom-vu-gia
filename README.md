@@ -1,85 +1,95 @@
 # Gốm Vũ Gia – Ứng dụng báo giá đồ thờ
 
 Ứng dụng web quản lý bảng giá đồ thờ, tạo bộ ban thờ, tự sắp ảnh ban thờ, lưu mẫu và xuất báo giá PDF/PNG.
-Toàn bộ ứng dụng là **một trang HTML tĩnh** (không có máy chủ, không có cơ sở dữ liệu phía server).
+Ứng dụng gồm một trang web (`src/`) và một máy chủ Python nhỏ (`server/app.py`, chỉ dùng thư viện chuẩn).
+Máy chủ bắt buộc **đăng nhập admin** (một tài khoản duy nhất, khai báo trong `.env`) và lưu dữ liệu dùng chung trong **SQLite**.
 
 ## Cấu trúc thư mục
 ```
+server/app.py        Máy chủ: đăng nhập admin, API dữ liệu, phục vụ dist/, lệnh nạp file sao lưu
 src/                 Mã nguồn giao diện
+  login.html         Trang đăng nhập
   body.html          Khung giao diện
   style.css          Toàn bộ giao diện + bố cục bản xuất A4 dọc (màu thương hiệu #92431E)
-  js/1_core.js       Tiện ích, đọc giá tiền, IndexedDB, ảnh, hộp thoại, tải file
-  js/2_app.js        Tính tiền, mã sản phẩm, khởi động, điều hướng
+  js/1_core.js       Tiện ích, đọc giá tiền, gọi API dữ liệu trên máy chủ, ảnh, hộp thoại, tải file
+  js/2_app.js        Tính tiền, mã sản phẩm, khởi động, đăng xuất, điều hướng
   js/3_prices.js     Bảng giá: sửa giá trực tiếp, hộp thêm/sửa/xóa sản phẩm, điều chỉnh giá hàng loạt, xuất Excel
   js/4_import.js     Nhập Excel/CSV: chọn sheet, dòng tiêu đề, ghép cột, nhiều cột giá, đối chiếu
   js/5_builder.js    Tạo bộ ban thờ, danh mục, bảng chi tiết, tổng tiền, lưu mẫu/báo giá
   js/6_export.js     Dựng trang A4, tự gói 1 trang, xuất PDF/PNG, in, xem trước
-  js/7_lists.js      Danh sách mẫu, báo giá, sao lưu/khôi phục, nạp bảng giá gốc khi mở lần đầu
+  js/7_lists.js      Danh sách mẫu, báo giá, sao lưu/khôi phục, đưa dữ liệu bản cũ (trên trình duyệt) lên máy chủ
   js/8_compose.js    Tự sắp ảnh ban thờ từ ảnh sản phẩm (tách nền, xếp hàng, kéo thả)
   js/9_start.js      Khởi chạy
-data/                Dữ liệu được nhúng vào trang khi dựng
-  Bang_gia_mau_Gom_Vu_Gia.xlsx   File Excel mẫu chép từ bảng giá PDF (2 kiểu sheet)
-  pdf_data.json                  228 biến thể từ PDF – bảng giá gốc nạp vào kho khi mở lần đầu
-  demo_altar.jpg                 Ảnh ban thờ của mẫu “Bộ Phúc Liên Hoa – vẽ vàng” nạp kèm bảng giá gốc
+data/
+  Bang_gia_mau_Gom_Vu_Gia.xlsx   File Excel mẫu chép từ bảng giá PDF (2 kiểu sheet), nhúng vào trang để tải về
+  pdf_data.json                  228 biến thể từ PDF – bảng giá gốc, dùng khi xuất file dữ liệu
+  demo_altar.jpg                 Ảnh ban thờ của mẫu “Bộ Phúc Liên Hoa – vẽ vàng” trong file dữ liệu
   logo_*.png                     Logo (logo_brown.png cũng là favicon)
 tools/
   pdf_data.py        Dữ liệu chép tay từ PDF
   make_xlsx.py       Tạo lại file Excel mẫu + pdf_data.json
-  build.py           Gộp src + data thành dist/
+  build.py           Gộp src + data thành dist/ (index.html, login.html, favicon.png)
+  export_data.py     Xuất file dữ liệu chính thức (.json) để nạp lên production
 tests/               Kịch bản kiểm thử tự động (Python Playwright), xem mục Kiểm thử
 docs/
-  database_schema.md   Cấu trúc kho IndexedDB và file sao lưu
-  supabase_schema.sql  Gợi ý bảng PostgreSQL/Supabase khi chuyển lên dùng chung nhiều máy
-deploy/nginx.conf    Cấu hình nginx dùng trong Docker image
-Dockerfile           Dựng trang rồi phục vụ bằng nginx
-docker-compose.yml   Service `app`, chỉ `expose` cổng 80 (dùng cho Coolify)
+  database_schema.md   Cấu trúc dữ liệu (SQLite trên máy chủ) và file sao lưu
+  supabase_schema.sql  Gợi ý bảng PostgreSQL/Supabase nếu sau này cần cơ sở dữ liệu lớn hơn
+Dockerfile           Dựng trang rồi chạy server/app.py
+docker-compose.yml   Service `app`: biến admin, volume dữ liệu, chỉ `expose` cổng 80 (dùng cho Coolify)
+.env.example         Mẫu file .env (tài khoản admin)
 ```
 
-`dist/` là thư mục kết quả, không đưa lên git:
-- `dist/index.html` – bản web đầy đủ (mở trực tiếp trên máy hoặc deploy).
-- `dist/gom-vu-gia-app.html` – chỉ phần nội dung trang, dùng để đăng lên Claude (không có thẻ `<html>`/`<head>`).
-- `dist/favicon.png`
+`dist/` (kết quả dựng), `var/` (dữ liệu khi chạy trên máy) và `exports/` (file dữ liệu xuất ra) không đưa lên git.
 
-## Dựng trên máy
+## Chạy trên máy
 Cần Python 3.10+.
 ```
 pip install -r requirements.txt
+cp .env.example .env        # rồi đổi ADMIN_USERNAME / ADMIN_PASSWORD (mật khẩu ≥ 8 ký tự)
 python tools/make_xlsx.py   # chỉ khi sửa tools/pdf_data.py
 python tools/build.py       # tạo lại dist/
+python server/app.py        # http://localhost:8080, dữ liệu trong var/gom_vu_gia.sqlite3
 ```
-Mở `dist/index.html` bằng Chrome hoặc Edge (cần Internet để tải thư viện xuất file và phông chữ).
+Mở http://localhost:8080 bằng Chrome hoặc Edge rồi đăng nhập bằng tài khoản trong `.env` (cần Internet để tải thư viện xuất file và phông chữ).
+Mọi trang và API đều cần đăng nhập. Phiên đăng nhập giữ 30 ngày; đổi tên hoặc mật khẩu admin thì mọi phiên cũ hết hiệu lực.
+Sai mật khẩu 5 lần thì địa chỉ đó bị khóa đăng nhập 15 phút.
 
 ## Deploy lên Coolify
 1. Đẩy repo lên GitHub.
 2. Trong Coolify: **New Resource → Public/Private Repository** → chọn repo, nhánh `main`.
 3. **Build Pack: Docker Compose** (file `docker-compose.yml` ở thư mục gốc).
-4. Ở service `app`, gắn domain (cổng `80`) rồi **Deploy**. Bật **Auto Deploy** để mỗi lần push lên `main` Coolify tự dựng lại.
+4. Mục **Environment Variables**: thêm `ADMIN_USERNAME` và `ADMIN_PASSWORD` (mật khẩu ≥ 8 ký tự). Thiếu hai biến này thì deploy báo lỗi.
+5. Ở service `app`, gắn domain (cổng `80`) rồi **Deploy**. Bật **Auto Deploy** để mỗi lần push lên `main` Coolify tự dựng lại.
 
+Dữ liệu nằm trong volume `gvg-data` (thư mục `/data` trong container), giữ nguyên qua các lần deploy. Đừng xóa volume này.
 `docker-compose.yml` chỉ dùng `expose: 80`, không có `ports:`, nên container không chiếm port nào trên host và không thể trùng port với ứng dụng khác; Coolify (Traefik) định tuyến domain vào cổng nội bộ.
-Không cần biến môi trường. Container có healthcheck tại `/healthz`.
+Container có healthcheck tại `/healthz`.
 
 Chạy thử trên máy (vì không publish port, truy cập bằng cách tạm map cổng):
 ```
-docker compose up -d --build
-docker compose run --rm --no-deps -p 8080:80 app   # hoặc: docker run --rm -p 8080:80 gom-vu-gia:latest
+docker compose up -d --build                        # đọc ADMIN_USERNAME / ADMIN_PASSWORD từ .env
+docker compose run --rm --no-deps -p 8080:80 app
 ```
 Mở http://localhost:8080. Dừng bằng `docker compose down`.
 
 ## Dữ liệu nằm ở đâu
-Ứng dụng lưu dữ liệu **trong trình duyệt của từng máy** (IndexedDB), gắn với **địa chỉ trang**.
-Repo này **không chứa** các thay đổi bảng giá, mẫu, báo giá và ảnh bạn đã nhập.
+Toàn bộ bảng giá, mẫu, báo giá, ảnh và bản nháp lưu **trên máy chủ** (SQLite trong `DATA_DIR`), dùng chung cho mọi thiết bị đăng nhập.
+Máy chủ mới **không có sẵn dữ liệu nào**: không còn kiểu tự nạp hay hiện dữ liệu mẫu. Dữ liệu được nạp bằng file sao lưu `.json`.
 
-Lần đầu mở ở một địa chỉ mới (kho trống), ứng dụng tự nạp **bảng giá gốc Gốm Vũ Gia** (228 sản phẩm chép từ PDF, `data/pdf_data.json`)
-và mẫu ban thờ “Bộ Phúc Liên Hoa – vẽ vàng” có ảnh. Đây là dữ liệu chính thức, sửa trực tiếp được – không còn chế độ “dữ liệu mẫu” riêng.
-Máy nào đã dùng chế độ dữ liệu mẫu của bản cũ thì lần mở đầu tiên sẽ chuyển dữ liệu đó sang kho chính (bỏ báo giá giả “Khách hàng mẫu”).
-Mục **Sao lưu → Thêm sản phẩm còn thiếu** bổ sung các sản phẩm gốc chưa có, không đổi giá đang có.
+### Đưa dữ liệu lên production
+1. Tạo file dữ liệu chính thức (bảng giá gốc 228 sản phẩm + mẫu “Bộ Phúc Liên Hoa – vẽ vàng” kèm ảnh):
+   ```
+   python tools/export_data.py      # -> exports/gom-vu-gia-du-lieu-<ngày>.json
+   ```
+2. Mở trang production, đăng nhập → **Sao lưu** → **Khôi phục từ bản sao lưu** → chọn file → **Thay thế toàn bộ**.
+   Hoặc chạy trong terminal của container: `python server/app.py import <file.json>`.
 
-Mỗi địa chỉ là một kho riêng: file HTML mở trên máy, bản trong Claude, `https://<domain-coolify>` – và cả khi bạn **đổi domain** sau này.
-Khi chuyển sang địa chỉ mới, trang sẽ trống; dữ liệu cũ vẫn còn ở địa chỉ cũ. Chuyển dữ liệu bằng file sao lưu:
-1. Mở bản cũ → mục **Sao lưu** → **Xuất bản sao lưu đầy đủ** (file `.json` gồm bảng giá, ảnh, mẫu, báo giá, bản nháp).
-2. Mở bản mới → **Khôi phục từ bản sao lưu** → chọn file vừa xuất.
+Nếu đã sửa bảng giá, mẫu, báo giá trên **bản cũ** (bản lưu ngay trong trình duyệt), có hai cách giữ lại:
+- Trước khi deploy bản mới: mở bản cũ → **Sao lưu** → **Xuất bản sao lưu đầy đủ**, rồi nạp file đó ở bước 2 thay cho file ở bước 1.
+- Sau khi deploy: mở trang **bằng chính trình duyệt đã dùng bản cũ, cùng địa chỉ**. Mục **Sao lưu** sẽ báo còn dữ liệu cũ và có nút **Đưa lên máy chủ**.
 
-Nhãn góc phải thanh trên cùng cho biết lần sao lưu gần nhất và chuyển màu vàng khi đã quá 7 ngày chưa sao lưu.
+Mỗi lần **Thay thế toàn bộ**, máy chủ tự chụp lại dữ liệu cũ vào `DATA_DIR/backups/` (giữ 10 bản gần nhất).
+Nhãn góc phải thanh trên cùng cho biết lần xuất sao lưu gần nhất và chuyển màu vàng khi đã quá 7 ngày chưa sao lưu.
 
 ## Quản trị bảng giá
 - **Sửa giá**: gõ ngay ở cột Đơn giá (Enter xuống dòng dưới), dòng đã sửa đánh dấu vàng, bấm **Lưu thay đổi**.
@@ -96,8 +106,8 @@ python -m playwright install chromium
 python tools/build.py
 python tests/run_all.py          # hoặc: python tests/run_all.py t1 t7
 ```
-Các test chạy theo thứ tự và dùng chung hồ sơ trình duyệt (t1 nhập bảng giá cho các test sau).
-Test tự mở máy chủ tĩnh ở cổng `8765` (đổi bằng biến `GVG_TEST_PORT`); kết quả, ảnh chụp nằm trong `tests/.output/`.
+Các test chạy theo thứ tự và dùng chung dữ liệu máy chủ (t1 đăng nhập, nạp file dữ liệu rồi nhập bảng giá cho các test sau).
+Test tự chạy `server/app.py` ở cổng `8765` (đổi bằng biến `GVG_TEST_PORT`) với tài khoản admin riêng cho test, dữ liệu trong `tests/.output/server/`; kết quả, ảnh chụp nằm trong `tests/.output/`.
 Một số test cần file mẫu chưa có trong repo, xem [tests/fixtures/README.md](tests/fixtures/README.md).
 Muốn chạy không cần Internet: đặt `GVG_LIBS` trỏ tới thư mục `node_modules` có `xlsx`, `html2canvas`, `jspdf`.
 

@@ -1,4 +1,4 @@
--- Gợi ý cấu trúc PostgreSQL/Supabase khi chuyển từ IndexedDB sang dùng chung nhiều thiết bị.
+-- Gợi ý cấu trúc PostgreSQL/Supabase nếu sau này cần cơ sở dữ liệu lớn hơn SQLite của server/app.py.
 -- Chưa được ứng dụng sử dụng; ánh xạ 1-1 với các store trong database_schema.md.
 
 create table products (

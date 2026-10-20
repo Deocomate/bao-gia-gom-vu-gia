@@ -1,14 +1,22 @@
 # Cấu trúc dữ liệu
 
-## Kho IndexedDB trên trình duyệt
-- Database `gom_vu_gia` (phiên bản 1). Kho trống khi mở lần đầu được nạp bảng giá gốc (`data/pdf_data.json`) và mẫu `tpl_phuc_lien_hoa`.
-- `gom_vu_gia_du_lieu_mau`: kho “dữ liệu mẫu” của bản cũ. Chỉ được đọc một lần để chuyển sang kho chính khi kho chính còn trống; ứng dụng không còn ghi vào kho này.
+## Kho SQLite trên máy chủ
+File `$DATA_DIR/gom_vu_gia.sqlite3` do `server/app.py` tạo. Máy chủ mới không có dữ liệu; dữ liệu được nạp bằng file sao lưu (xem README).
+- `docs(store, k, v)`: mỗi dòng là một tài liệu JSON thuộc store `kv`, `products` hoặc `records`, khóa `k` là khóa của store.
+- `images(id, meta, data)`: ảnh; `meta` là JSON (`type`, `w`, `h`, `createdAt`…), `data` là nội dung ảnh (BLOB).
+- `settings(k, v)`: khóa ký phiên đăng nhập (`session_secret`), tạo tự động.
+
+API (cần đăng nhập): `GET /api/data/<store>`, `GET /api/data/<store>/<khóa>`, `POST /api/tx` với `{"ops": [{"op": "put|del|clear", "store", "obj"|"key"}]}`.
+Mỗi `tx` ghi trong một giao dịch; ảnh gửi/nhận dạng data URL trong trường `data`.
+Trước thao tác `clear` (khôi phục “Thay thế toàn bộ”), bản cũ được chụp vào `$DATA_DIR/backups/`.
+
+Bản cũ lưu dữ liệu ngay trên trình duyệt (IndexedDB `gom_vu_gia`, cùng các store bên dưới). Ứng dụng chỉ đọc kho này để đưa lên máy chủ khi người dùng bấm **Đưa lên máy chủ**.
 
 | Store | Khóa | Nội dung |
 |---|---|---|
 | `products` | `code` | Mỗi dòng là một biến thể (tổ hợp tên + quy cách + dòng men) |
 | `records` | `id` | Mẫu ban thờ (`kind: "template"`) và báo giá (`kind: "quote"`) |
-| `images` | `id` | Ảnh (Blob): ảnh sản phẩm, ảnh ban thờ, ảnh ghép, ảnh nền |
+| `images` | `id` | Ảnh: ảnh sản phẩm, ảnh ban thờ, ảnh ghép, ảnh nền |
 | `kv` | `k` | `meta` (nhóm, bộ đếm mã báo giá, phiên bản bảng giá, `lastBackupAt` – lần sao lưu gần nhất) và `draft` (bộ đang soạn) |
 
 ### products
@@ -37,8 +45,9 @@ Mỗi dòng `items` lưu **ảnh chụp giá tại thời điểm lưu** (tên, 
 
 ### images
 ```json
-{ "id": "img_xxx", "blob": "<Blob>", "type": "image/jpeg", "w": 1600, "h": 1200, "createdAt": "ISO" }
+{ "id": "img_xxx", "data": "data:image/jpeg;base64,...", "type": "image/jpeg", "w": 1600, "h": 1200, "createdAt": "ISO" }
 ```
+Trong trình duyệt, `DB.get("images", id)` đổi `data` thành `blob` (Blob) để hiển thị.
 
 ## File sao lưu (.json)
 ```json
