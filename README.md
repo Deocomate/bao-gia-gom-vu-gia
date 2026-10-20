@@ -12,6 +12,7 @@ src/                 Mã nguồn giao diện
   body.html          Khung giao diện
   style.css          Toàn bộ giao diện + bố cục bản xuất A4 dọc (màu thương hiệu #92431E)
   js/1_core.js       Tiện ích, đọc giá tiền, gọi API dữ liệu trên máy chủ, ảnh, hộp thoại, tải file
+  js/1_select.js     Dropdown tùy biến thay mọi ô chọn và ô gợi ý (tìm không dấu, phím mũi tên, hiệu ứng)
   js/2_app.js        Tính tiền, mã sản phẩm, khởi động, đăng xuất, điều hướng
   js/3_prices.js     Bảng giá: sửa giá trực tiếp, hộp thêm/sửa/xóa sản phẩm, điều chỉnh giá hàng loạt, xuất Excel
   js/4_import.js     Nhập Excel/CSV: chọn sheet, dòng tiêu đề, ghép cột, nhiều cột giá, đối chiếu
@@ -84,9 +85,12 @@ Máy chủ mới **không có sẵn dữ liệu nào**: không còn kiểu tự 
 2. Mở trang production, đăng nhập → **Sao lưu** → **Khôi phục từ bản sao lưu** → chọn file → **Thay thế toàn bộ**.
    Hoặc chạy trong terminal của container: `python server/app.py import <file.json>`.
 
+Chỉ cần bảng giá thì chọn thẳng `data/pdf_data.json` ở bước 2 (hoặc `python server/app.py import data/pdf_data.json`): khi đó chỉ bảng giá bị thay, mẫu, báo giá và ảnh giữ nguyên.
+
 Nếu đã sửa bảng giá, mẫu, báo giá trên **bản cũ** (bản lưu ngay trong trình duyệt), có hai cách giữ lại:
 - Trước khi deploy bản mới: mở bản cũ → **Sao lưu** → **Xuất bản sao lưu đầy đủ**, rồi nạp file đó ở bước 2 thay cho file ở bước 1.
-- Sau khi deploy: mở trang **bằng chính trình duyệt đã dùng bản cũ, cùng địa chỉ**. Mục **Sao lưu** sẽ báo còn dữ liệu cũ và có nút **Đưa lên máy chủ**.
+- Sau khi deploy: mở trang **bằng chính trình duyệt đã dùng bản cũ, cùng địa chỉ**. Mục **Sao lưu** sẽ báo còn dữ liệu cũ (cả dữ liệu nhập ở chế độ “dữ liệu mẫu / Xem thử”) và có nút **Đưa lên máy chủ** cho từng kho. Kho cũ trong trình duyệt không bị xóa.
+  Nút **Sao lưu → Khôi phục dữ liệu mẫu** luôn có sẵn để lấy lại dữ liệu này bất cứ lúc nào (kể cả khi đã bấm “Quay về dữ liệu thật” ở bản cũ hoặc đã đưa lên một lần).
 
 Mỗi lần **Thay thế toàn bộ**, máy chủ tự chụp lại dữ liệu cũ vào `DATA_DIR/backups/` (giữ 10 bản gần nhất).
 Nhãn góc phải thanh trên cùng cho biết lần xuất sao lưu gần nhất và chuyển màu vàng khi đã quá 7 ngày chưa sao lưu.

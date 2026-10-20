@@ -102,17 +102,41 @@ async function renderData() {
       <button class="btn" data-act="restore" ${S.dbOK ? "" : "disabled"}>Khôi phục từ bản sao lưu</button>
       <p class="muted" style="margin:12px 0 0;font-size:12.5px">Trước khi thay thế toàn bộ, máy chủ tự giữ lại một bản của dữ liệu cũ.</p>
     </div>
+    <div class="panel">
+      <h3 style="margin:0 0 8px">Khôi phục dữ liệu mẫu (bản cũ)</h3>
+      <p class="muted" style="margin:0 0 12px">Lấy lại những gì đã nhập ở bản cũ trên trình duyệt này, kể cả ở chế độ <b>Xem thử với dữ liệu mẫu</b> và cả khi đã bấm quay về dữ liệu thật.</p>
+      <button class="btn" data-act="legacy-scan" ${S.dbOK ? "" : "disabled"}>Khôi phục dữ liệu mẫu</button>
+      <p class="muted" style="margin:12px 0 0;font-size:12.5px">Phải mở trang bằng <b>đúng trình duyệt, đúng máy và đúng địa chỉ</b> đã dùng bản cũ. Dữ liệu đã bị xóa bằng “Làm mới dữ liệu mẫu” hoặc xóa dữ liệu duyệt web thì không lấy lại được.</p>
+    </div>
   </div>`;
   el.onclick = async e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const a = b.dataset.act;
     if (a === "backup") exportBackup();
     else if (a === "restore") pickFile(".json,application/json", f => restoreBackup(f));
-    else if (a === "legacy") { const d = await legacyData(); if (d && await restoreData(d, "dữ liệu của bản cũ trên trình duyệt này")) { try { localStorage.setItem("gvg_legacy_done", "1"); } catch { } renderData(); } }
+    else if (a === "legacy") {
+      const src = LEGACY_DBS.find(x => x.name === b.dataset.db), d = src && await legacyData(src);
+      if (d) restoreLegacy(src, d);
+    }
+    else if (a === "legacy-scan") {
+      const list = [];
+      for (const src of LEGACY_DBS) { const d = await legacyData(src, true); if (d) list.push({ src, d }); }
+      if (!list.length) return toast("Trình duyệt này không còn dữ liệu của bản cũ ở địa chỉ trang này. Hãy mở trang bằng đúng trình duyệt, đúng máy và đúng địa chỉ đã dùng bản cũ.", "bad", 9000);
+      let pick = list[0];
+      if (list.length > 1) {
+        const v = await choiceBox({ title: "Chọn dữ liệu cần khôi phục", html: list.map(x => `<p><b>Dữ liệu ${esc(x.src.label)}</b>: ${legacySummary(x.d)}.</p>`).join("") + "<p class=\"muted\">Muốn lấy cả hai thì khôi phục lần lượt từng kho, chọn <b>Gộp</b>.</p>",
+          choices: [{ text: "Hủy", value: null }, ...list.map((x, i) => ({ text: x.src.demo ? "Kho dữ liệu mẫu" : "Kho chính của bản cũ", value: String(i), cls: x.src.demo ? "primary" : "" }))] });
+        if (v == null) return;
+        pick = list[+v];
+      }
+      restoreLegacy(pick.src, pick.d);
+    }
   };
-  const d = S.dbOK ? await legacyData() : null;
   const box = $("#legacy-box");
-  if (d && box) box.innerHTML = `<div class="banner"><span class="grow">Trình duyệt này còn dữ liệu của bản cũ (lưu trên máy): <b>${d.products.length}</b> sản phẩm, <b>${d.records.length}</b> mẫu/báo giá, <b>${d.images.length}</b> ảnh.</span><button class="btn sm primary" data-act="legacy">Đưa lên máy chủ</button></div>`;
+  if (!S.dbOK || !box) return;
+  const found = [];
+  for (const src of LEGACY_DBS) { const d = await legacyData(src); if (d) found.push(`<div class="banner"><span class="grow">Trình duyệt này còn dữ liệu ${esc(src.label)}: ${legacySummary(d)}.</span><button class="btn sm primary" data-act="legacy" data-db="${src.name}">Đưa lên máy chủ</button></div>`); }
+  box.innerHTML = found.join("");
 }
 async function exportBackup() {
   busy("Đang tạo bản sao lưu…");
@@ -132,19 +156,26 @@ async function exportBackup() {
 async function restoreBackup(file) {
   let data;
   try { data = JSON.parse(await file.text()); } catch { return toast("File không phải bản sao lưu hợp lệ", "bad"); }
+  // data/pdf_data.json (bảng giá gốc chép từ PDF): chỉ có danh sách sản phẩm
+  if (data && Array.isArray(data.variants)) {
+    const now = new Date().toISOString();
+    const products = data.variants.filter(v => v && v.code).map(v => ({ ...v, image: v.image ?? null, createdAt: v.createdAt || now, updatedAt: now }));
+    return restoreData({ app: "gom-vu-gia-bao-gia", products, records: [], images: [], kv: [] }, `bảng giá <b>${esc(file.name)}</b>`, true);
+  }
   if (!data || data.app !== "gom-vu-gia-bao-gia" || !Array.isArray(data.products)) return toast("File này không phải bản sao lưu của ứng dụng Gốm Vũ Gia", "bad");
   restoreData(data, `file tạo lúc <b>${esc(fmtDate(data.exportedAt))}</b>`);
 }
-async function restoreData(data, srcHtml) {
+/* onlyProducts: file chỉ có bảng giá – “Thay thế” chỉ thay bảng giá, giữ mẫu, báo giá, ảnh */
+async function restoreData(data, srcHtml, onlyProducts = false) {
   const nT = (data.records || []).filter(r => r.kind === "template").length, nQ = (data.records || []).filter(r => r.kind === "quote").length;
   const mode = await choiceBox({ title: "Nạp dữ liệu lên máy chủ", html: `<p>Nguồn: ${srcHtml} – <b>${data.products.length}</b> sản phẩm, <b>${nT}</b> mẫu, <b>${nQ}</b> báo giá, <b>${(data.images || []).length}</b> ảnh.</p>
-    <ul style="padding-left:18px"><li><b>Thay thế toàn bộ</b>: xóa dữ liệu hiện tại trên máy chủ rồi nạp dữ liệu này.</li><li><b>Gộp</b>: giữ dữ liệu hiện tại, thêm/ghi đè các mục trùng mã.</li></ul>`,
-    choices: [{ text: "Hủy", value: null }, { text: "Gộp", value: "merge" }, { text: "Thay thế toàn bộ", value: "replace", cls: "danger" }] });
+    <ul style="padding-left:18px"><li><b>Thay thế ${onlyProducts ? "bảng giá" : "toàn bộ"}</b>: xóa ${onlyProducts ? "bảng giá" : "dữ liệu"} hiện tại trên máy chủ rồi nạp dữ liệu này.${onlyProducts ? " Mẫu, báo giá, ảnh giữ nguyên." : ""}</li><li><b>Gộp</b>: giữ dữ liệu hiện tại, thêm/ghi đè các mục trùng mã.</li></ul>`,
+    choices: [{ text: "Hủy", value: null }, { text: "Gộp", value: "merge" }, { text: onlyProducts ? "Thay thế bảng giá" : "Thay thế toàn bộ", value: "replace", cls: "danger" }] });
   if (!mode) return;
   busy("Đang nạp dữ liệu…");
   try {
     await DB.run(["kv", "products", "records", "images"], "readwrite", t => {
-      if (mode === "replace") ["kv", "products", "records", "images"].forEach(s => t.objectStore(s).clear());
+      if (mode === "replace") (onlyProducts ? ["products"] : ["kv", "products", "records", "images"]).forEach(s => t.objectStore(s).clear());
       (data.kv || []).forEach(x => { if (mode === "replace" || x.k !== "draft") t.objectStore("kv").put(x); });
       data.products.forEach(p => t.objectStore("products").put(p));
       (data.records || []).forEach(r => t.objectStore("records").put(r));
@@ -156,13 +187,19 @@ async function restoreData(data, srcHtml) {
     return true;
   } catch (e) { busy(); toast("KHÔNG nạp được: " + errMsg(e) + ". Dữ liệu trên máy chủ giữ nguyên.", "bad"); }
 }
-/* Bản cũ lưu dữ liệu ngay trên trình duyệt (IndexedDB “gom_vu_gia”): đọc ra để đưa lên máy chủ, không sửa gì ở kho cũ */
-const LEGACY_DB = "gom_vu_gia";
-async function legacyData() {
-  try { if (!window.indexedDB || localStorage.getItem("gvg_legacy_done")) return null; } catch { return null; }
+/* Bản cũ lưu dữ liệu ngay trên trình duyệt (IndexedDB): kho chính và kho của chế độ “dữ liệu mẫu” (Xem thử).
+   Chỉ đọc ra để đưa lên máy chủ, không sửa hay xóa gì ở kho cũ. */
+const LEGACY_DBS = [{ name: "gom_vu_gia", label: "của bản cũ" }, { name: "gom_vu_gia_du_lieu_mau", label: "nhập ở chế độ dữ liệu mẫu (Xem thử) của bản cũ", demo: true }];
+const legacySummary = d => `<b>${d.products.length}</b> sản phẩm, <b>${d.records.filter(r => r.kind === "template").length}</b> mẫu, <b>${d.records.filter(r => r.kind === "quote").length}</b> báo giá, <b>${d.images.length}</b> ảnh`;
+async function restoreLegacy(src, d) {
+  if (await restoreData(d, `dữ liệu ${src.label} trên trình duyệt này`)) { try { localStorage.setItem("gvg_legacy_done:" + src.name, "1"); } catch { } renderData(); }
+}
+/* force: đọc cả khi đã đưa lên máy chủ trước đó (nút “Khôi phục dữ liệu mẫu”); không thì thông báo chỉ hiện một lần */
+async function legacyData(src, force = false) {
+  try { if (!window.indexedDB || (!force && localStorage.getItem("gvg_legacy_done:" + src.name))) return null; } catch { return null; }
   const db = await new Promise(res => {
     let r;
-    try { r = indexedDB.open(LEGACY_DB); } catch { return res(null); }
+    try { r = indexedDB.open(src.name); } catch { return res(null); }
     r.onupgradeneeded = e => { if (e.oldVersion === 0) r.transaction.abort(); }; // chưa từng có thì không tạo kho mới
     r.onsuccess = () => res(r.result);
     r.onerror = () => res(null);
@@ -172,6 +209,12 @@ async function legacyData() {
   try {
     const all = st => new Promise((res, rej) => { const q = db.transaction(st).objectStore(st).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
     const [kv, products, records, images] = await Promise.all(["kv", "products", "records", "images"].map(all));
-    return products.length || records.length ? { kv, products, records, images } : null;
+    if (!products.length && !records.length) return null;
+    if (src.demo) { // bỏ cờ “dữ liệu mẫu” để thành dữ liệu thật
+      products.forEach(p => delete p.demo);
+      records.forEach(r => { delete r.demo; r.name = String(r.name || "").replace(/\s*\(MẪU\)\s*$/, ""); });
+      kv.forEach(x => { if (x.v && typeof x.v === "object") delete x.v.demo; if (x.k === "draft" && x.v?.draft) delete x.v.draft.demo; });
+    }
+    return { kv, products, records, images };
   } catch { return null; } finally { db.close(); }
 }

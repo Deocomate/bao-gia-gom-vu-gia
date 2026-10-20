@@ -159,7 +159,13 @@ class Store:
 
 
 def backup_to_ops(data):
-    """File sao lưu (.json) của ứng dụng → các thao tác thay thế toàn bộ dữ liệu."""
+    """File sao lưu (.json) của ứng dụng → các thao tác thay thế toàn bộ dữ liệu.
+    Nhận cả data/pdf_data.json (chỉ có bảng giá): khi đó chỉ thay bảng giá, giữ mẫu, báo giá, ảnh."""
+    if isinstance(data, dict) and isinstance(data.get("variants"), list):
+        now = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
+        return [{"op": "clear", "store": "products"}] + [
+            {"op": "put", "store": "products", "obj": {**v, "image": v.get("image"), "createdAt": v.get("createdAt") or now, "updatedAt": now}}
+            for v in data["variants"] if isinstance(v, dict) and v.get("code")]
     if not isinstance(data, dict) or data.get("app") != "gom-vu-gia-bao-gia" or not isinstance(data.get("products"), list):
         raise ValueError("File này không phải bản sao lưu của ứng dụng Gốm Vũ Gia")
     ops = [{"op": "clear", "store": s} for s in STORES]
@@ -350,8 +356,10 @@ def main(argv):
     if len(argv) >= 2 and argv[0] == "import":
         with open(argv[1], encoding="utf-8") as f:
             data = json.load(f)
-        store.apply(backup_to_ops(data))
-        print(f"Đã nạp {argv[1]}: {len(data['products'])} sản phẩm, {len(data.get('records') or [])} mẫu/báo giá, {len(data.get('images') or [])} ảnh")
+        ops = backup_to_ops(data)
+        store.apply(ops)
+        n = lambda s: sum(o["op"] == "put" and o["store"] == s for o in ops)
+        print(f"Đã nạp {argv[1]}: {n('products')} sản phẩm, {n('records')} mẫu/báo giá, {n('images')} ảnh")
         return
     if argv:
         raise SystemExit(__doc__)
