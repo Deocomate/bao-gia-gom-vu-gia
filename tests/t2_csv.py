@@ -3,7 +3,7 @@ _need = [os.path.join(FIX, "edge.csv"), os.path.join(FIX, "Bang_gia_mau_Gom_Vu_G
 if not all(os.path.exists(f) for f in _need):
     raise SystemExit("BỎ QUA: thiếu file mẫu trong tests/fixtures/ (edge.csv, Bang_gia_mau_Gom_Vu_Gia.xls)")
 with sync_playwright() as p:
-    ctx, page, errs = new_ctx(p)  # dùng tiếp hồ sơ đã có 228 sản phẩm
+    ctx, page, errs = new_ctx(p)  # dùng tiếp hồ sơ đã có 236 sản phẩm
     page.goto(URL); page.wait_for_timeout(800)
     page.click("#tab-prices"); page.wait_for_timeout(300)
     # CSV

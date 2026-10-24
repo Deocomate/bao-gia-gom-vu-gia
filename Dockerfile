@@ -14,6 +14,8 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 DATA_DIR=/data HOST=0.0.0.0 PORT=80
 COPY server ./server
 COPY --from=build /app/dist ./dist
+# Bảng giá gốc: khi khởi động, máy chủ cập nhật giá theo file này nếu nó đổi so với lần trước
+COPY data/pdf_data.json ./data/pdf_data.json
 VOLUME /data
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

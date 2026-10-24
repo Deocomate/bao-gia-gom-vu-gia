@@ -23,7 +23,7 @@ src/                 Mã nguồn giao diện
   js/9_start.js      Khởi chạy
 data/
   Bang_gia_mau_Gom_Vu_Gia.xlsx   File Excel mẫu chép từ bảng giá PDF (2 kiểu sheet), nhúng vào trang để tải về
-  pdf_data.json                  228 biến thể từ PDF – bảng giá gốc, dùng khi xuất file dữ liệu
+  pdf_data.json                  236 biến thể – bảng giá gốc, dùng khi xuất file dữ liệu và tự cập nhật giá khi deploy
   demo_altar.jpg                 Ảnh ban thờ của mẫu “Bộ Phúc Liên Hoa – vẽ vàng” trong file dữ liệu
   logo_*.png                     Logo (logo_brown.png cũng là favicon)
 tools/
@@ -78,7 +78,7 @@ Toàn bộ bảng giá, mẫu, báo giá, ảnh và bản nháp lưu **trên má
 Máy chủ mới **không có sẵn dữ liệu nào**: không còn kiểu tự nạp hay hiện dữ liệu mẫu. Dữ liệu được nạp bằng file sao lưu `.json`.
 
 ### Đưa dữ liệu lên production
-1. Tạo file dữ liệu chính thức (bảng giá gốc 228 sản phẩm + mẫu “Bộ Phúc Liên Hoa – vẽ vàng” kèm ảnh):
+1. Tạo file dữ liệu chính thức (bảng giá gốc 236 sản phẩm + mẫu “Bộ Phúc Liên Hoa – vẽ vàng” kèm ảnh):
    ```
    python tools/export_data.py      # -> exports/gom-vu-gia-du-lieu-<ngày>.json
    ```
@@ -91,6 +91,13 @@ Nếu đã sửa bảng giá, mẫu, báo giá trên **bản cũ** (bản lưu n
 - Trước khi deploy bản mới: mở bản cũ → **Sao lưu** → **Xuất bản sao lưu đầy đủ**, rồi nạp file đó ở bước 2 thay cho file ở bước 1.
 - Sau khi deploy: mở trang **bằng chính trình duyệt đã dùng bản cũ, cùng địa chỉ**. Mục **Sao lưu** sẽ báo còn dữ liệu cũ (cả dữ liệu nhập ở chế độ “dữ liệu mẫu / Xem thử”) và có nút **Đưa lên máy chủ** cho từng kho. Kho cũ trong trình duyệt không bị xóa.
   Nút **Sao lưu → Khôi phục dữ liệu mẫu** luôn có sẵn để lấy lại dữ liệu này bất cứ lúc nào (kể cả khi đã bấm “Quay về dữ liệu thật” ở bản cũ hoặc đã đưa lên một lần).
+
+### Cập nhật giá khi deploy
+Bảng giá gốc `data/pdf_data.json` (tạo từ `tools/pdf_data.py` bằng `python tools/make_xlsx.py`) được đóng kèm bản deploy.
+Khi khởi động, nếu file này khác lần trước, máy chủ tự chụp dữ liệu vào `DATA_DIR/backups/truoc-cap-nhat-gia-*.sqlite3` rồi cập nhật theo mã sản phẩm:
+mã đã có thì đổi giá (ô giá để trống trong file thì giữ giá cũ), mã chưa có thì thêm mới; không xóa sản phẩm, không đổi mẫu và báo giá đã lưu
+(các mẫu/báo giá có dòng lệch giá hiện nhãn **Có giá mới** để cập nhật). Mỗi phiên bản file chỉ áp dụng một lần, nên giá sửa trong ứng dụng sau đó được giữ qua các lần khởi động lại.
+Máy chủ chưa có sản phẩm nào thì bỏ qua bước này.
 
 Mỗi lần **Thay thế toàn bộ**, máy chủ tự chụp lại dữ liệu cũ vào `DATA_DIR/backups/` (giữ 10 bản gần nhất).
 Nhãn góc phải thanh trên cùng cho biết lần xuất sao lưu gần nhất và chuyển màu vàng khi đã quá 7 ngày chưa sao lưu.

@@ -5,6 +5,7 @@
     ADMIN_USERNAME, ADMIN_PASSWORD (tối thiểu 8 ký tự)
 - Dữ liệu (bảng giá, mẫu, báo giá, ảnh, bản nháp) lưu trong SQLite: $DATA_DIR/gom_vu_gia.sqlite3
   Mỗi lần khôi phục kiểu “Thay thế toàn bộ”, bản cũ được chụp lại trong $DATA_DIR/backups/.
+- Khi khởi động, nếu data/pdf_data.json (bảng giá gốc đóng kèm bản deploy) khác lần trước thì cập nhật giá theo mã sản phẩm.
 - Biến khác: DATA_DIR (mặc định ./var), HOST (0.0.0.0), PORT (8080).
 
     python server/app.py                     chạy máy chủ
@@ -24,6 +25,7 @@ MAX_FAILS, FAIL_WINDOW = 5, 15 * 60
 KEEP_SNAPSHOTS = 10
 # Tên dòng men cũ được đổi sang tên mới (khách dễ hiểu lầm chữ “thường”); áp dụng cho dữ liệu đã lưu và mọi lần ghi.
 GLAZE_RENAMES = {"Men lam thường": "Men lam"}
+PRICE_FILE = os.path.join(ROOT, "data", "pdf_data.json")
 
 
 def load_env_file(path):
@@ -166,6 +168,39 @@ class Store:
             except BaseException:
                 self.db.execute("ROLLBACK")
                 raise
+
+    def sync_prices(self, path):
+        """Cập nhật bảng giá theo file bảng giá gốc đóng kèm bản deploy, mỗi phiên bản file chỉ áp dụng một lần.
+        Mã đã có: đổi giá (file để trống giá thì giữ giá cũ). Mã chưa có: thêm mới. Không xóa gì, không đụng mẫu/báo giá.
+        Kho chưa có sản phẩm nào (máy chủ mới) thì bỏ qua – dữ liệu được nạp bằng file sao lưu."""
+        if not os.path.exists(path):
+            return None
+        with open(path, "rb") as f:
+            raw = f.read()
+        sha = hashlib.sha256(raw).hexdigest()
+        with self.lock:
+            done = self.db.execute("SELECT v FROM settings WHERE k='price_file_sha'").fetchone()
+            empty = not self.db.execute("SELECT EXISTS(SELECT 1 FROM docs WHERE store='products')").fetchone()[0]
+        if (done and done[0] == sha) or empty:
+            return None
+        now = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
+        current = {p["code"]: p for p in self.all("products")}
+        ops, changed, added = [], 0, 0
+        for v in json.loads(raw.decode("utf-8"))["variants"]:
+            p = current.get(v["code"])
+            if p is None:
+                ops.append({"op": "put", "store": "products", "obj": {**v, "image": None, "createdAt": now, "updatedAt": now}})
+                added += 1
+            elif v["price"] is not None and p.get("price") != v["price"]:
+                ops.append({"op": "put", "store": "products", "obj": {**p, "price": v["price"], "updatedAt": now}})
+                changed += 1
+        with self.lock:
+            if ops:
+                self._snapshot("truoc-cap-nhat-gia-")
+        self.apply(ops)
+        with self.lock:
+            self.db.execute("INSERT OR REPLACE INTO settings(k, v) VALUES('price_file_sha', ?)", (sha,))
+        return f"Cập nhật bảng giá: đổi giá {changed} mã, thêm {added} mã"
 
     def _snapshot(self, prefix="truoc-khoi-phuc-"):
         """Chụp lại toàn bộ kho trước thao tác xóa sạch hoặc đổi hàng loạt; giữ 10 bản gần nhất mỗi loại."""
@@ -387,6 +422,9 @@ def main(argv):
         return
     if argv:
         raise SystemExit(__doc__)
+    msg = store.sync_prices(PRICE_FILE)
+    if msg:
+        print(msg, flush=True)
     app = App(store, os.environ.get("ADMIN_USERNAME", "").strip(), os.environ.get("ADMIN_PASSWORD", ""), os.environ.get("DIST_DIR") or os.path.join(ROOT, "dist"))
     host, port = os.environ.get("HOST", "0.0.0.0"), int(os.environ.get("PORT", "8080"))
     srv = make_server(app, host, port)
