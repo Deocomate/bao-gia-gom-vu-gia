@@ -1,6 +1,6 @@
 # Dữ liệu chép từ PDF "Báo giá sản phẩm đồ thờ men lam – Bộ đồ thờ Phúc Liên Hoa" (GVG.B_ MEN LAM.pdf)
 # Mỗi sản phẩm: (mục PDF, nhóm, tên, họa tiết, ĐVT, [(quy cách, giá men lam, giá vàng kim, ghi chú)], ghi chú chung)
-ML = "Men lam thường"
+ML = "Men lam"
 VV = "Men lam vẽ vàng"
 
 P = [

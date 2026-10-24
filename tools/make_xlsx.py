@@ -21,7 +21,7 @@ lines = [
  ("Nguồn: chép từ PDF “Báo giá sản phẩm đồ thờ men lam – Bộ đồ thờ Phúc Liên Hoa”. Hãy kiểm tra lại giá trước khi dùng chính thức.", False),
  ("", False),
  ("Sheet “Bảng giá theo biến thể”: mỗi dòng là một biến thể (quy cách × dòng men), có Mã cố định. Đây là định dạng ứng dụng xuất ra và nhập lại.", False),
- ("Sheet “Bảng giá 2 cột giá”: giống bố cục PDF, giá Men lam thường và Men lam vẽ vàng nằm ở 2 cột. Khi nhập, chọn cả 2 cột giá để ứng dụng tách thành biến thể.", False),
+ ("Sheet “Bảng giá 2 cột giá”: giống bố cục PDF, giá Men lam và Men lam vẽ vàng nằm ở 2 cột. Khi nhập, chọn cả 2 cột giá để ứng dụng tách thành biến thể.", False),
  ("", False),
  ("Cách điền:", True),
  ("• Mã: để trống nếu chưa có – ứng dụng tự tạo mã và giữ ổn định khi nhập lại. Đã có mã thì không đổi mã.", False),
@@ -75,7 +75,7 @@ ws.auto_filter.ref = f"A4:J{4 + len(variants())}"
 
 # Sheet 2: 2 cột giá như PDF
 ws2 = wb.create_sheet("Bảng giá 2 cột giá")
-cols2 = ["STT", "Nhóm", "Tên sản phẩm", "Họa tiết", "Quy cách", "ĐVT", "Giá Men lam thường", "Giá Men lam vẽ vàng", "Ghi chú"]
+cols2 = ["STT", "Nhóm", "Tên sản phẩm", "Họa tiết", "Quy cách", "ĐVT", "Giá Men lam", "Giá Men lam vẽ vàng", "Ghi chú"]
 header(ws2, 1, cols2, [6, 18, 32, 10, 12, 8, 18, 20, 46])
 stt = 0
 for i, r in enumerate(wide_rows(), 2):

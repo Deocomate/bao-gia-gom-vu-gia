@@ -51,7 +51,7 @@ const parseMoneyInput = s => { const d = String(s ?? "").replace(/[^\d]/g, ""); 
 
 /* ===================== Trạng thái ===================== */
 const DEFAULT_GROUPS = ["Bát hương", "Lọ lộc bình", "Chóe", "Mâm bồng", "Kỷ chén", "Nậm rượu", "Ống hương", "Đèn dầu", "Chân nến", "Bộ trà", "Tam cấp/kệ bát hương", "Phụ kiện khác"];
-const DEFAULT_GLAZES = ["Men lam thường", "Men lam vẽ vàng"];
+const DEFAULT_GLAZES = ["Men lam", "Men lam vẽ vàng"];
 const DEFAULT_UNITS = ["chiếc", "đôi", "bộ", "cái"];
 const S = {
   dbOK: true, products: new Map(), records: new Map(), meta: null,

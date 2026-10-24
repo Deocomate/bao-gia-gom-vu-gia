@@ -18,7 +18,7 @@ const PRICE_RX = /(gia|men lam|vang kim|ve vang|price)/;
 function guessGlazeFromHeader(h) {
   const n = norm(h);
   if (/(ve vang|vang kim|vang)/.test(n)) return "Men lam vẽ vàng";
-  if (/(men lam|thuong)/.test(n)) return "Men lam thường";
+  if (/(men lam|thuong)/.test(n)) return "Men lam";
   return "";
 }
 const cellStr = v => v == null ? "" : (typeof v === "number" ? String(v) : String(v).replace(/\s+/g, " ").trim());
@@ -148,7 +148,7 @@ function impRenderMap(box) {
     <h3 style="margin:0 0 8px;font-size:15px">Ghép cột trong file với thông tin sản phẩm</h3>
     <div class="mapgrid">${IMP_FIELDS.map(([f, label]) => `<label class="field"><span>${esc(label)}</span>${sel(f)}</label>`).join("")}</div>
     <h3 style="margin:18px 0 4px;font-size:15px">Cột giá bán</h3>
-    <p class="muted" style="margin:0">Tích các cột dùng làm giá bán. Nếu chọn nhiều cột (ví dụ giá men lam thường và men lam vẽ vàng), mỗi dòng sẽ tách thành các biến thể theo dòng men, giữ đúng giá từng cột.</p>
+    <p class="muted" style="margin:0">Tích các cột dùng làm giá bán. Nếu chọn nhiều cột (ví dụ giá men lam và men lam vẽ vàng), mỗi dòng sẽ tách thành các biến thể theo dòng men, giữ đúng giá từng cột.</p>
     <div class="pricecols">${candidates.map(i => { const pc = W.priceCols.find(p => p.col === i) || { col: i, use: false, glaze: guessGlazeFromHeader(cols[i]) };
       return `<div class="pricecol"><input type="checkbox" data-pc="${i}" ${pc.use ? "checked" : ""} id="pc-${i}" aria-label="Dùng cột ${esc(cols[i])} làm giá"><label for="pc-${i}"><b>${esc(cols[i])}</b> <span class="muted">– ví dụ: ${esc(impSample(i))}</span></label>
         <input class="inp" data-pcg="${i}" placeholder="Dòng men cho cột này" value="${esc(pc.glaze)}" list="dl-glaze-imp"></div>`; }).join("")}</div>

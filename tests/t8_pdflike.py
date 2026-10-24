@@ -12,7 +12,7 @@ with sync_playwright() as p:
     page.click("#imp-next"); page.wait_for_timeout(500)
     page.click("#tab-builder"); page.wait_for_timeout(400)
     page.fill("#cat-q","BÁT HƯƠNG"); page.wait_for_timeout(400)
-    page.select_option("#cat-glaze", label="Men lam thường"); page.wait_for_timeout(300)
+    page.select_option("#cat-glaze", label="Men lam"); page.wait_for_timeout(300)
     print("thẻ:", page.locator(".pcard").count())
     print(page.eval_on_selector_all(".pcard", "els=>els.slice(0,3).map(e=>e.innerText.replace(/\\s+/g,' ')+' | disabled='+e.querySelector('[data-act=c-add]').disabled)"))
     page.locator(".pcard [data-act=c-add]").first.click(); page.wait_for_timeout(300)

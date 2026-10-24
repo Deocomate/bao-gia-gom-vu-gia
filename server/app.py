@@ -22,6 +22,8 @@ SESSION_SECONDS = 30 * 86400
 MAX_BODY = 200 * 1024 * 1024
 MAX_FAILS, FAIL_WINDOW = 5, 15 * 60
 KEEP_SNAPSHOTS = 10
+# Tên dòng men cũ được đổi sang tên mới (khách dễ hiểu lầm chữ “thường”); áp dụng cho dữ liệu đã lưu và mọi lần ghi.
+GLAZE_RENAMES = {"Men lam thường": "Men lam"}
 
 
 def load_env_file(path):
@@ -53,6 +55,28 @@ class Store:
           CREATE TABLE IF NOT EXISTS docs(store TEXT NOT NULL, k TEXT NOT NULL, v TEXT NOT NULL, PRIMARY KEY(store, k));
           CREATE TABLE IF NOT EXISTS images(id TEXT PRIMARY KEY, meta TEXT NOT NULL, data BLOB NOT NULL);
           CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT NOT NULL);""")
+        self._rename_glazes()
+
+    @staticmethod
+    def _glaze_pairs():
+        return [(json.dumps(a, ensure_ascii=False), json.dumps(b, ensure_ascii=False)) for a, b in GLAZE_RENAMES.items()]
+
+    @classmethod
+    def _rename_text(cls, v):
+        for a, b in cls._glaze_pairs():
+            v = v.replace(a, b)
+        return v
+
+    def _rename_glazes(self):
+        """Đổi tên dòng men cũ trong dữ liệu đã lưu (chụp lại kho trước khi đổi)."""
+        pairs = self._glaze_pairs()
+        if not any(self.db.execute("SELECT EXISTS(SELECT 1 FROM docs WHERE instr(v, ?) > 0)", (a,)).fetchone()[0] for a, _ in pairs):
+            return
+        self._snapshot("truoc-doi-ten-men-")
+        self.db.execute("BEGIN IMMEDIATE")
+        for a, b in pairs:
+            self.db.execute("UPDATE docs SET v = replace(v, ?, ?) WHERE instr(v, ?) > 0", (a, b, a))
+        self.db.execute("COMMIT")
 
     def setting(self, k, make):
         with self.lock:
@@ -111,7 +135,7 @@ class Store:
                     meta = {k: v for k, v in obj.items() if k != "data"}
                     out.append((op, store, key, (json.dumps(meta, ensure_ascii=False), base64.b64decode(m.group(1)))))
                 else:
-                    out.append((op, store, key, json.dumps(obj, ensure_ascii=False)))
+                    out.append((op, store, key, Store._rename_text(json.dumps(obj, ensure_ascii=False))))
             else:
                 raise ValueError("Thao tác không hợp lệ")
         return out
@@ -143,18 +167,18 @@ class Store:
                 self.db.execute("ROLLBACK")
                 raise
 
-    def _snapshot(self):
-        """Chụp lại toàn bộ kho trước thao tác xóa sạch (khôi phục “Thay thế toàn bộ”); giữ 10 bản gần nhất."""
+    def _snapshot(self, prefix="truoc-khoi-phuc-"):
+        """Chụp lại toàn bộ kho trước thao tác xóa sạch hoặc đổi hàng loạt; giữ 10 bản gần nhất mỗi loại."""
         if not self.db.execute("SELECT EXISTS(SELECT 1 FROM docs) OR EXISTS(SELECT 1 FROM images)").fetchone()[0]:
             return
         d = os.path.join(os.path.dirname(os.path.abspath(self.path)), "backups")
         os.makedirs(d, exist_ok=True)
-        dst = sqlite3.connect(os.path.join(d, time.strftime("truoc-khoi-phuc-%Y%m%d-%H%M%S.sqlite3")))
+        dst = sqlite3.connect(os.path.join(d, time.strftime(prefix + "%Y%m%d-%H%M%S.sqlite3")))
         try:
             self.db.backup(dst)
         finally:
             dst.close()
-        for old in sorted(f for f in os.listdir(d) if f.startswith("truoc-khoi-phuc-"))[:-KEEP_SNAPSHOTS]:
+        for old in sorted(f for f in os.listdir(d) if f.startswith(prefix))[:-KEEP_SNAPSHOTS]:
             os.remove(os.path.join(d, old))
 
 

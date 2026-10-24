@@ -4,7 +4,7 @@ OLD = """([name, demo]) => new Promise((res, rej) => {
   const r = indexedDB.open(name, 1);
   r.onupgradeneeded = () => ['kv:k','products:code','records:id','images:id'].forEach(x => { const [n,k] = x.split(':'); r.result.createObjectStore(n, {keyPath: k}); });
   r.onsuccess = () => { const t = r.result.transaction(['kv','products','records'], 'readwrite');
-    t.objectStore('products').put({code: demo ? 'DEMO-1' : 'OLD-1', name: demo ? 'Lọ nhập ở bản demo' : 'Lọ bản cũ', group: 'Lọ', size: '', glaze: 'Men lam thường', unit: 'chiếc', price: 123000, demo, ord: 1});
+    t.objectStore('products').put({code: demo ? 'DEMO-1' : 'OLD-1', name: demo ? 'Lọ nhập ở bản demo' : 'Lọ bản cũ', group: 'Lọ', size: '', glaze: 'Men lam', unit: 'chiếc', price: 123000, demo, ord: 1});
     t.objectStore('records').put({id: demo ? 'tpl_demo_1' : 'tpl_old', kind: 'template', name: demo ? 'Bộ của tôi (MẪU)' : 'Mẫu bản cũ', items: [], demo});
     t.objectStore('records').put({id: demo ? 'q_demo_x' : 'q_old', kind: 'quote', name: 'Báo giá', items: [], customer: {name: 'Anh Nam'}, quoteCode: demo ? 'BG1' : 'BG2'});
     t.objectStore('kv').put({k: 'meta', v: {groups: [], counters: {}, demo}});
