@@ -299,6 +299,7 @@ async function impApply() {
     await DB.run(["products", "kv"], "readwrite", t => { const os = t.objectStore("products"); out.forEach(p => os.put(p)); t.objectStore("kv").put({ k: "meta", v: metaNext }); });
     out.forEach(p => S.products.set(p.code, p));
     S.meta = metaNext; S.pe = null; S.cardSel.clear();
+    await syncAllPrices();
     busy();
     const nNew = pick.filter(v => !v.ex).length;
     toast(`Đã nhập bảng giá: ${nNew} sản phẩm mới, ${pick.length - nNew} cập nhật`);

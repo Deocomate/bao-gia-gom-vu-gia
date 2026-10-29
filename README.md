@@ -95,8 +95,8 @@ Nếu đã sửa bảng giá, mẫu, báo giá trên **bản cũ** (bản lưu n
 ### Cập nhật giá khi deploy
 Bảng giá gốc `data/pdf_data.json` (tạo từ `tools/pdf_data.py` bằng `python tools/make_xlsx.py`) được đóng kèm bản deploy.
 Khi khởi động, nếu file này khác lần trước, máy chủ tự chụp dữ liệu vào `DATA_DIR/backups/truoc-cap-nhat-gia-*.sqlite3` rồi cập nhật theo mã sản phẩm:
-mã đã có thì đổi giá (ô giá để trống trong file thì giữ giá cũ), mã chưa có thì thêm mới; không xóa sản phẩm, không đổi mẫu và báo giá đã lưu
-(các mẫu/báo giá có dòng lệch giá hiện nhãn **Có giá mới** để cập nhật). Mỗi phiên bản file chỉ áp dụng một lần, nên giá sửa trong ứng dụng sau đó được giữ qua các lần khởi động lại.
+mã đã có thì đổi giá (ô giá để trống trong file thì giữ giá cũ), mã chưa có thì thêm mới; không xóa sản phẩm.
+Mẫu và báo giá đã lưu tự dùng giá mới ở lần mở ứng dụng kế tiếp (trừ dòng đã sửa giá tay). Mỗi phiên bản file chỉ áp dụng một lần, nên giá sửa trong ứng dụng sau đó được giữ qua các lần khởi động lại.
 Máy chủ chưa có sản phẩm nào thì bỏ qua bước này.
 
 Mỗi lần **Thay thế toàn bộ**, máy chủ tự chụp lại dữ liệu cũ vào `DATA_DIR/backups/` (giữ 10 bản gần nhất).
@@ -104,8 +104,10 @@ Nhãn góc phải thanh trên cùng cho biết lần xuất sao lưu gần nhấ
 
 ## Quản trị bảng giá
 - **Sửa giá**: gõ ngay ở cột Đơn giá (Enter xuống dòng dưới), dòng đã sửa đánh dấu vàng, bấm **Lưu thay đổi**.
-- **Sửa thông tin / ảnh / xóa**: bấm vào tên sản phẩm. Xóa không ảnh hưởng mẫu và báo giá đã lưu (chúng giữ giá tại lúc lưu).
+- **Sửa thông tin / ảnh / xóa**: bấm vào tên sản phẩm. Xóa không ảnh hưởng mẫu và báo giá đã lưu (dòng của sản phẩm đã xóa giữ đơn giá cuối cùng).
 - **Thêm sản phẩm**: một hộp thoại, đánh dấu các dòng men có bán – mỗi dòng men thành một mã riêng.
+- **Đơn giá trong bộ / báo giá luôn theo bảng giá hiện tại**: lưu giá mới trong bảng giá thì mọi mẫu, báo giá (cả bản xuất PDF/PNG) dùng ngay giá đó.
+- **Sửa giá cho riêng một bộ / báo giá**: ở trang Tạo bộ ban thờ, gõ thẳng vào cột Đơn giá của từng dòng. Dòng đó thành “giá sửa tay”, giữ nguyên khi bảng giá đổi, và hiện nhãn kèm giá bảng giá cùng hai nút: **Dùng giá bảng** (bỏ giá sửa tay) và **Lưu vào bảng giá** (ghi giá này vào bảng giá để mọi bộ dùng chung). Gõ lại đúng giá bảng giá thì dòng tự theo bảng giá như cũ.
 - **Điều chỉnh giá hàng loạt**: tăng/giảm theo % hoặc số tiền, hay đặt cùng một giá, cho các dòng đang hiện theo bộ lọc, có làm tròn; xem trước rồi mới lưu.
 
 Cấu trúc file sao lưu: [docs/database_schema.md](docs/database_schema.md).

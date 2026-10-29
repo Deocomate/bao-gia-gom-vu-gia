@@ -88,15 +88,19 @@ with sync_playwright() as p:
     page.screenshot(path=f"{SHOT}/10_price_edit.png")
     page.click("[data-act=save]"); page.wait_for_timeout(500)
     print("giá mới:", page.evaluate("S.products.get('BH01-D20-VV').price"), toasts(page)[-1:])
-    print("báo giá giữ nguyên:", page.evaluate(f"[calc(S.records.get('{qid}')).total, S.records.get('{qid}').items.find(l=>l.code==='BH01-D20-VV').price]"), "trước:", qtotal)
+    qline = page.evaluate(f"[calc(S.records.get('{qid}')).total, S.records.get('{qid}').items.find(l=>l.code==='BH01-D20-VV').price]")
+    print("báo giá theo giá mới:", qline, "trước:", qtotal)
+    assert qline[1] == 2450000 and qline[0] != qtotal
     page.click("#tab-quotes"); page.wait_for_timeout(300)
     page.screenshot(path=f"{SHOT}/11_quotes.png")
     page.click(f"[data-act=open][data-id='{qid}']"); page.wait_for_timeout(400)
-    print("banner:", page.locator("[data-act=upd-prices]").count())
-    page.click("[data-act=upd-prices]"); page.wait_for_timeout(300)
-    page.screenshot(path=f"{SHOT}/12_update_prices.png")
-    page.click(".modal [data-ok]"); page.wait_for_timeout(300)
-    print("sau cập nhật (chưa lưu):", page.evaluate(f"[calc(S.draft).total, calc(S.records.get('{qid}')).total]"))
+    print("banner:", page.locator("[data-act=upd-prices]").count(), "bản nháp sạch:", not page.evaluate("draftDirty()"))
+    assert page.locator("[data-act=upd-prices]").count() == 0 and not page.evaluate("draftDirty()")
+    print("mở báo giá:", page.evaluate(f"[calc(S.draft).total, calc(S.records.get('{qid}')).total]"))
+    page.reload(); page.wait_for_timeout(1200)
+    print("tải lại vẫn giá mới:", page.evaluate(f"S.records.get('{qid}').items.find(l=>l.code==='BH01-D20-VV').price"))
+    assert page.evaluate(f"S.records.get('{qid}').items.find(l=>l.code==='BH01-D20-VV').price") == 2450000
+    page.click("#tab-builder"); page.wait_for_timeout(300)
     # Xuất PDF & PNG
     with page.expect_download(timeout=60000) as dl:
         page.click("[data-act=pdf]")

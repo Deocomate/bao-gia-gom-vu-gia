@@ -33,7 +33,7 @@ Bản cũ lưu dữ liệu ngay trên trình duyệt (IndexedDB `gom_vu_gia`, c�
 { "id": "tpl_xxx | q_xxx", "kind": "template | quote", "name": "...", "desc": "...", "altarSize": "1m53",
   "imageId": "img_xxx", "imageSig": "chữ ký danh sách lúc tải ảnh",
   "items": [ { "lid": "l_xxx", "code": "BH01-D20-VV", "name": "...", "pattern": "...", "size": "Ø20",
-               "glaze": "...", "unit": "chiếc", "price": 2200000, "qty": 1 } ],
+               "glaze": "...", "unit": "chiếc", "price": 2200000, "qty": 1, "manual": true } ],
   "discount": { "mode": "none | percent | amount", "value": 0 },
   "shipping": 0, "install": 0, "otherFee": 0, "otherFeeLabel": "", "note": "", "vatNote": "",
   "customer": { "name": "", "phone": "", "address": "" },
@@ -41,7 +41,8 @@ Bản cũ lưu dữ liệu ngay trên trình duyệt (IndexedDB `gom_vu_gia`, c�
   "compose": { "remove": true, "tol": 38, "caption": true, "bgId": null, "items": [ ... vị trí ảnh ghép ... ] },
   "sourceTemplateId": null, "createdAt": "ISO", "updatedAt": "ISO" }
 ```
-Mỗi dòng `items` lưu **ảnh chụp giá tại thời điểm lưu** (tên, quy cách, ĐVT, đơn giá), nên báo giá cũ không đổi khi bảng giá thay đổi.
+Mỗi dòng `items` lưu tên, quy cách, ĐVT và đơn giá. Đơn giá **luôn theo bảng giá hiện tại**: khi tải dữ liệu hoặc khi bảng giá đổi, ứng dụng ghi giá bảng giá vào mọi dòng có mã còn trong bảng giá.
+Dòng có `"manual": true` là giá sửa tay cho riêng bộ đó, giữ nguyên khi bảng giá đổi (không có trường này nghĩa là theo bảng giá). Dòng có mã đã bị xóa khỏi bảng giá giữ đơn giá cuối cùng.
 
 ### images
 ```json

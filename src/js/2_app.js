@@ -61,6 +61,26 @@ function priceDiffs(d) {
   }
   return out;
 }
+/* Đơn giá của dòng luôn theo bảng giá hiện tại, trừ dòng đã sửa tay (manual) cho riêng bộ đó */
+function syncLinePrices(d) {
+  let n = 0;
+  for (const l of d.items || []) {
+    const p = S.products.get(l.code);
+    if (!p || l.manual) continue;
+    const v = p.price ?? null;
+    if ((l.price ?? null) !== v) { l.price = v; n++; }
+  }
+  return n;
+}
+/* Áp giá bảng giá vào bộ đang soạn và mọi mẫu/báo giá đã lưu, ghi lại những bản ghi có đổi */
+async function syncAllPrices() {
+  const clean = S.draft && !draftDirty();
+  if (S.draft && syncLinePrices(S.draft)) { if (clean && S.draft.id) S.draftBase = contentSig(S.draft); persistDraft(); }
+  const changed = [...S.records.values()].filter(r => syncLinePrices(r));
+  if (!changed.length || !S.dbOK) return;
+  try { await DB.run(["records"], "readwrite", t => changed.forEach(r => t.objectStore("records").put(r))); }
+  catch (e) { toast("Chưa ghi được giá mới vào mẫu/báo giá: " + errMsg(e), "bad"); }
+}
 function newDraft() {
   return {
     id: null, kind: "new", name: "", desc: "", altarSize: "", imageId: null, imageSig: null, items: [],
@@ -93,7 +113,7 @@ async function loadAll() {
   recs.forEach(r => S.records.set(r.id, r));
   S.draft = kvm.draft?.draft || newDraft();
   S.draftBase = kvm.draft?.base || "";
-  S.pe = null;
+  S.pe = null;  await syncAllPrices();
 }
 async function boot() {
   try { S.framed = window.self !== window.top; } catch { S.framed = true; }

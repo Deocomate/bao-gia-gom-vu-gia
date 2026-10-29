@@ -15,7 +15,7 @@ function renderTemplates() {
       <div class="tc-body"><h3>${esc(r.name || "Chưa đặt tên")}</h3>${r.desc ? `<div class="muted" style="font-size:13px">${esc(r.desc)}</div>` : ""}
         <div class="muted" style="font-size:12.5px">${r.items.length} dòng sản phẩm · ${c.count} SP · cập nhật ${fmtDate(r.updatedAt)}</div>
         <div class="tc-total">${money(c.total)} ${c.missing ? '<span class="chip bad">Tạm tính</span>' : ""}</div>
-        ${pd ? `<div><span class="chip gold">Có giá mới (${pd} dòng)</span></div>` : ""}</div>
+        ${pd ? `<div><span class="chip gold">Giá sửa tay (${pd} dòng)</span></div>` : ""}</div>
       <div class="tc-acts"><button class="btn sm primary" data-act="open" data-id="${r.id}">Mở / sửa</button><button class="btn sm" data-act="quote" data-id="${r.id}">Tạo báo giá</button><button class="btn sm" data-act="dup" data-id="${r.id}">Nhân bản</button><button class="btn sm ghost danger" data-act="del" data-id="${r.id}">Xóa</button></div>
     </article>`; }).join("")}</div>` : `<div class="panel empty">${q ? "Không có mẫu khớp tìm kiếm." : `Chưa có mẫu nào. Vào <b>Tạo bộ ban thờ</b>, chọn sản phẩm rồi bấm <b>Lưu mẫu</b>.`}</div>`}`;
   $("#tpl-q").oninput = debounce(e => { S.tplQ = e.target.value; renderTemplates(); const i = $("#tpl-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250);
@@ -64,7 +64,7 @@ function renderQuotes() {
   const el = $("#view-quotes");
   const q = norm(S.quoteQ);
   const list = [...S.records.values()].filter(r => r.kind === "quote" && (!q || norm([r.quoteCode, r.customer?.name, r.customer?.phone, r.name].join(" ")).includes(q))).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-  el.innerHTML = `<div class="view-head"><div><h1>Báo giá khách hàng</h1><p>Báo giá đã lưu giữ nguyên giá tại thời điểm lưu. Khi bảng giá đổi, mở báo giá để xem và chủ động cập nhật nếu muốn.</p></div>
+  el.innerHTML = `<div class="view-head"><div><h1>Báo giá khách hàng</h1><p>Đơn giá trong báo giá tự theo bảng giá hiện tại, trừ dòng đã sửa giá tay khi soạn.</p></div>
     <div class="btn-row"><input class="inp" type="search" id="q-q" placeholder="Tìm mã, tên khách, SĐT…" value="${esc(S.quoteQ)}" style="width:240px"></div></div>
     ${list.length ? `<div class="tbl-wrap"><table class="list"><thead><tr><th style="width:56px"></th><th>Mã báo giá</th><th>Khách hàng</th><th>Bộ đồ thờ</th><th>Ngày</th><th>Hiệu lực</th><th class="r">Tổng thanh toán</th><th style="width:330px"></th></tr></thead><tbody>
     ${list.map(r => { const c = calc(r), expired = r.validUntil && r.validUntil < todayISO(); return `<tr>

@@ -162,7 +162,7 @@ function renderSheet() {
   </div>` : ""}
   <div class="sheet-body">
     <div class="photo" id="photo"></div>
-    <div class="items-wrap"><table class="items"><thead><tr><th style="width:34px" class="c">STT</th><th>Tên sản phẩm và quy cách</th><th style="width:46px" class="c">ĐVT</th><th style="width:88px" class="r">Đơn giá</th><th style="width:96px" class="c">Số lượng</th><th style="width:98px" class="r">Thành tiền</th><th style="width:62px"><span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Thao tác</span></th></tr></thead><tbody id="items-body"></tbody></table><div id="items-empty"></div></div>
+    <div class="items-wrap"><table class="items"><thead><tr><th style="width:34px" class="c">STT</th><th>Tên sản phẩm và quy cách</th><th style="width:46px" class="c">ĐVT</th><th style="width:110px" class="r">Đơn giá</th><th style="width:96px" class="c">Số lượng</th><th style="width:98px" class="r">Thành tiền</th><th style="width:62px"><span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Thao tác</span></th></tr></thead><tbody id="items-body"></tbody></table><div id="items-empty"></div></div>
   </div>
   <div class="totals">
     <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
@@ -214,7 +214,9 @@ function lineTags(l) {
   if (!p) t.push('<span class="chip off">Không còn trong bảng giá</span>');
   else {
     if (p.active === false) t.push('<span class="chip off">Ngừng dùng</span>');
-    if ((p.price ?? null) !== (l.price ?? null)) t.push(`<span class="chip gold">Giá hiện tại: ${p.price == null ? "chưa có" : money(p.price)}</span>`);
+    if ((p.price ?? null) !== (l.price ?? null)) t.push(`<span class="chip gold">Giá sửa tay · bảng giá: ${p.price == null ? "chưa có" : money(p.price)}</span>`,
+      `<button class="btn sm ghost" data-act="lp-reset" title="Bỏ giá sửa tay, dùng lại giá bảng giá">Dùng giá bảng</button>`,
+      ...(l.price != null ? [`<button class="btn sm ghost" data-act="lp-save" title="Ghi đơn giá này vào bảng giá cho sản phẩm ${esc(l.code)}">Lưu vào bảng giá</button>`] : []));
   }
   return t.length ? `<div class="btn-row" style="gap:4px;margin-top:3px">${t.join("")}</div>` : "";
 }
@@ -222,9 +224,9 @@ function renderItems() {
   const tb = $("#items-body"), d = S.draft; if (!tb) return;
   tb.innerHTML = d.items.map((l, i) => `<tr data-lid="${l.lid}">
     <td class="c num">${i + 1}</td>
-    <td class="it-name"><b>${esc(lineTitle(l))}</b><small>${esc(lineSub(l))}</small>${lineTags(l)}</td>
+    <td class="it-name"><b>${esc(lineTitle(l))}</b><small>${esc(lineSub(l))}</small><div data-tags>${lineTags(l)}</div></td>
     <td class="c">${esc(l.unit)}</td>
-    <td class="r">${l.price == null ? '<span class="na">Chưa có giá</span>' : fmt(l.price)}</td>
+    <td class="r"><input class="cell-inp price" data-lprice value="${l.price == null ? "" : fmt(l.price)}" inputmode="numeric" placeholder="Chưa có giá" aria-label="Đơn giá ${esc(lineTitle(l))}" title="Sửa đơn giá cho riêng bộ này (bảng giá giữ nguyên)"></td>
     <td class="c"><div class="stepper"><button data-act="dec" aria-label="Giảm">−</button><input data-qty value="${l.qty}" inputmode="numeric" aria-label="Số lượng"><button data-act="inc" aria-label="Tăng">+</button></div></td>
     <td class="r" data-amt>${l.price == null ? "—" : fmt(l.price * l.qty)}</td>
     <td><div class="row-acts">
@@ -250,10 +252,17 @@ function renderTotals() {
 function renderBanners() {
   const box = $("#b-banners"); if (!box) return;
   const d = S.draft, diffs = priceDiffs(d), out = [];
-  if (diffs.length) out.push(`<div class="banner info"><span class="grow"><b>Bảng giá đã thay đổi:</b> ${diffs.length} dòng trong bộ này có giá khác bảng giá hiện tại. Giá trong bộ chưa bị thay đổi.</span><button class="btn sm primary" data-act="upd-prices">Cập nhật theo bảng giá hiện tại</button></div>`);
+  if (diffs.length) out.push(`<div class="banner info"><span class="grow"><b>Giá sửa tay:</b> ${diffs.length} dòng trong bộ này dùng đơn giá sửa tay, khác bảng giá hiện tại. Các dòng khác tự theo bảng giá.</span><button class="btn sm primary" data-act="upd-prices">Dùng lại giá bảng giá</button></div>`);
   box.innerHTML = out.join("");
 }
 function lineEl(e) { const tr = e.target.closest("tr[data-lid]"); return tr ? S.draft.items.find(l => l.lid === tr.dataset.lid) : null; }
+function setLinePrice(l, price, tr) {
+  const p = S.products.get(l.code);
+  l.price = price;
+  if (p && (p.price ?? null) === price) delete l.manual; else l.manual = true;
+  if (tr) { $("[data-amt]", tr).textContent = price == null ? "—" : fmt(price * l.qty); $("[data-tags]", tr).innerHTML = lineTags(l); }
+  renderTotals(); renderBanners(); touched();
+}
 function setQty(l, q, tr) {
   l.qty = q;
   if (tr) { $("[data-qty]", tr).value = q; $("[data-qty]", tr).classList.remove("err"); $("[data-amt]", tr).textContent = l.price == null ? "—" : fmt(l.price * q); }
@@ -265,6 +274,12 @@ function onBuilderInput(e) {
   if (t.matches("[data-qty]")) {
     const l = lineEl(e), v = t.value.trim();
     if (/^\d+$/.test(v) && +v > 0 && +v <= 100000) setQty(l, +v, t.closest("tr")); else t.classList.add("err");
+    return;
+  }
+  if (t.matches("[data-lprice]")) {
+    const p = parsePrice(t.value);
+    t.classList.toggle("err", !p.ok);
+    if (p.ok) setLinePrice(lineEl(e), p.value, t.closest("tr"));
     return;
   }
   if (t.matches("[data-cqty]")) { const s = S.cardSel.get(t.dataset.cqty); const v = t.value.trim(); if (s) { if (/^\d+$/.test(v) && +v > 0) { s.qty = +v; t.classList.remove("err"); } else t.classList.add("err"); } return; }
@@ -284,6 +299,11 @@ function onBuilderChange(e) {
   if (t.matches("[data-fee]")) t.value = fmt(d[t.dataset.fee]) || "";
   if (t.id === "d-dval" && d.discount.mode === "amount") t.value = fmt(d.discount.value);
   if (t.matches("[data-qty]")) { const l = lineEl(e); if (t.classList.contains("err")) { t.value = l.qty; t.classList.remove("err"); toast("Số lượng phải là số nguyên dương", "bad"); } }
+  if (t.matches("[data-lprice]")) {
+    const l = lineEl(e);
+    if (t.classList.contains("err")) { const p = parsePrice(t.value); t.classList.remove("err"); toast(p.zero ? "Đơn giá phải lớn hơn 0 – để trống nếu chưa có giá" : "Không đọc được đơn giá", "bad"); }
+    t.value = l.price == null ? "" : fmt(l.price);
+  }
   if (t.matches("[data-cqty]")) { const s = S.cardSel.get(t.dataset.cqty); if (s) { t.value = s.qty; t.classList.remove("err"); } }
 }
 async function onBuilderClick(e) {
@@ -329,6 +349,8 @@ async function builderClick(e) {
     case "ph-remove": d.imageId = null; d.imageSig = null; renderPhoto(); touched(); break;
     case "ph-ok": d.imageSig = itemsSig(d); renderPhoto(); touched(); break;
     case "upd-prices": openPriceUpdate(); break;
+    case "lp-reset": delete l.manual; syncLinePrices({ items: [l] }); renderItems(); renderTotals(); renderBanners(); touched(); break;
+    case "lp-save": saveLinePriceToList(l); break;
     case "compose": openComposer(); break;
     case "to-quote": d.kind = "quote"; if (!d.quoteDate) d.quoteDate = todayISO(); renderBuilder(); touched(); setTimeout(() => $("#c-name")?.focus(), 0); break;
     case "cat-hide": S.catHidden = true; renderBuilder(); break;
@@ -363,7 +385,7 @@ function openReplace(line) {
       const p = S.products.get(btn.dataset.code), d = S.draft;
       const other = d.items.find(x => x.code === p.code && x !== line);
       if (other) { other.qty += line.qty; d.items = d.items.filter(x => x !== line); toast("Sản phẩm này đã có trong bộ – đã cộng số lượng vào dòng đó"); }
-      else Object.assign(line, { code: p.code, name: p.name, pattern: p.pattern || "", size: p.size || "", glaze: p.glaze || "", unit: p.unit, price: p.price ?? null });
+      else { Object.assign(line, { code: p.code, name: p.name, pattern: p.pattern || "", size: p.size || "", glaze: p.glaze || "", unit: p.unit, price: p.price ?? null }); delete line.manual; }
       close(); renderItems(); renderBanners(); touched();
     });
   } });
@@ -385,7 +407,19 @@ function openPriceUpdate() {
     ${d.discount.mode === "amount" && d.discount.value > after.subtotal ? `<div class="banner bad" style="margin-top:10px">Sau cập nhật, số tiền giảm vượt tổng tiền vật phẩm – cần sửa mức giảm.</div>` : ""}`;
   modal({ title: "Cập nhật theo bảng giá hiện tại", size: "mid", body,
     foot: `<button class="btn" data-close>Giữ giá cũ</button><button class="btn primary" data-ok>Cập nhật ${diffs.length} dòng</button>`,
-    onMount: (el, close) => $("[data-ok]", el).onclick = () => { diffs.forEach(x => x.line.price = x.newP); close(); renderItems(); renderBanners(); touched(); toast(`Đã cập nhật giá ${diffs.length} dòng theo bảng giá hiện tại`); } });
+    onMount: (el, close) => $("[data-ok]", el).onclick = () => { diffs.forEach(x => { x.line.price = x.newP; delete x.line.manual; }); close(); renderItems(); renderTotals(); renderBanners(); touched(); toast(`Đã đưa ${diffs.length} dòng về giá bảng giá`); } });
+}
+async function saveLinePriceToList(l) {
+  const p = S.products.get(l.code); if (!p || l.price == null) return;
+  if (S.pe?.dirty.has(p.code)) return toast("Sản phẩm này đang được sửa dở trong Bảng giá – hãy lưu hoặc hủy ở đó trước", "bad");
+  if (!(await confirmBox({ title: "Lưu vào bảng giá?", html: `<p>Đổi đơn giá <b>${esc(pLabel(p))}</b> (${esc(p.glaze)}) trong bảng giá từ <b>${p.price == null ? "chưa có giá" : money(p.price)}</b> thành <b>${money(l.price)}</b>.</p><p class="muted">Mọi mẫu và báo giá đang theo bảng giá sẽ dùng giá mới này.</p>`, okText: "Lưu vào bảng giá" }))) return;
+  busy("Đang lưu bảng giá…");
+  try {
+    delete l.manual;
+    await commitProducts([{ ...p, price: l.price, updatedAt: new Date().toISOString() }]);
+    busy(); renderItems(); renderTotals(); renderBanners(); touched();
+    toast(`Đã lưu giá ${money(l.price)} vào bảng giá cho ${pLabel(p)}`);
+  } catch (e) { l.manual = true; busy(); toast("CHƯA LƯU được bảng giá: " + errMsg(e), "bad"); }
 }
 /* ----- Lưu / mở / nhân bản ----- */
 async function confirmDiscard() {
@@ -409,7 +443,7 @@ function blockingIssues(d, forExport) {
   if (!d.items.length) out.push("Bộ chưa có vật phẩm nào");
   if (c.discErr) out.push(c.discErr);
   if (c.qtyBad) out.push("Có dòng số lượng không hợp lệ");
-  if (forExport && c.missing) out.push(`Còn ${c.missing} sản phẩm chưa có giá – đây mới là tạm tính, chưa thể xuất thành báo giá chính thức. Hãy nhập giá trong bảng giá rồi bấm “Cập nhật theo bảng giá hiện tại”, hoặc thay/xóa dòng đó.`);
+  if (forExport && c.missing) out.push(`Còn ${c.missing} sản phẩm chưa có giá – đây mới là tạm tính, chưa thể xuất thành báo giá chính thức. Hãy nhập giá trong bảng giá hoặc gõ đơn giá ngay ở dòng đó, hoặc thay/xóa dòng đó.`);
   return out;
 }
 function showIssues(title, issues) { modal({ title, body: `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px">${issues.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`, foot: `<button class="btn primary" data-close>Đã hiểu</button>` }); }
@@ -483,7 +517,7 @@ function askCustomer(d) {
         <label class="field"><span>Hiệu lực đến (nếu có)</span><input class="inp" type="date" id="q-valid" value="${esc(d.validUntil)}"></label>
         <label class="field"><span>Tên bộ trên báo giá</span><input class="inp" id="q-title" value="${esc(d.name)}" placeholder="Ví dụ: Bộ đồ thờ Phúc Liên Hoa"></label>
         <label class="field"><span>Mã báo giá</span><input class="inp" id="q-code" placeholder="Để trống để tự tạo" value="${esc(d.quoteCode)}"></label>
-      </div><p class="muted" style="margin:10px 0 0">Báo giá lưu lại sẽ giữ nguyên tên, quy cách, đơn giá, số lượng, giảm giá và phí tại thời điểm lưu – không tự đổi khi bảng giá thay đổi.</p>`,
+      </div><p class="muted" style="margin:10px 0 0">Đơn giá trong báo giá luôn theo bảng giá hiện tại (bảng giá đổi thì báo giá tự đổi theo), trừ những dòng đã sửa giá tay.</p>`,
       foot: `<button class="btn" data-close>Hủy</button><button class="btn primary" data-ok>Lưu báo giá</button>`,
       onMount: (el, close) => $("[data-ok]", el).onclick = () => {
         const name = $("#q-name", el).value.trim(), code = $("#q-code", el).value.trim();

@@ -253,6 +253,7 @@ table.items td{padding:8px 6px;border-bottom:1px dashed var(--line-strong);verti
 table.items tr.flash td{background:var(--gold-soft);transition:background .3s}
 table.items .r{text-align:right;font-variant-numeric:tabular-nums}
 table.items .c{text-align:center}
+table.items .cell-inp{border-color:var(--line)}
 .it-name b{font-weight:600}
 .it-name small{display:block;color:var(--muted);font-size:12px}
 .stepper{display:inline-flex;align-items:center;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;background:var(--surface)}

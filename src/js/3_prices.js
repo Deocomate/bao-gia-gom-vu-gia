@@ -200,6 +200,7 @@ async function commitProducts(list) {
   list.forEach(p => S.products.set(p.code, p));
   S.meta = metaNext; S.cardSel.clear();
   peSync(list.map(p => p.code));
+  await syncAllPrices();
 }
 /* Đưa các mã vừa lưu/xóa vào bảng đang sửa, giữ nguyên những dòng khác còn đang sửa dở */
 function peSync(codes) {
