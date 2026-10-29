@@ -108,23 +108,36 @@ async function snap(el, scale) {
   return html2canvas(el, { scale, backgroundColor: "#ffffff", useCORS: true, logging: false, width: el.offsetWidth, height: el.offsetHeight, windowWidth: 1400, scrollX: 0, scrollY: 0 });
 }
 async function exportPDF(d = S.draft) {
-  if (!preExport(d) || !needLib("pdf")) return;
+  if (!preExport(d)) return;
+  await writePDF([d], fileBase(d) + ".pdf", (d.name || "Báo giá") + " – Gốm Vũ Gia");
+}
+/* Gộp nhiều mẫu vào một file PDF: mỗi mẫu bắt đầu ở trang mới, giữ đúng thứ tự trong danh sách */
+async function exportPDFMerged(list) {
+  if (!list.length) return toast("Hãy tích chọn ít nhất một mẫu", "bad");
+  const iss = list.flatMap(d => blockingIssues(d, true).map(x => `${d.name || "Chưa đặt tên"}: ${x}`));
+  if (iss.length) return showIssues("Chưa thể xuất PDF gộp", iss);
+  await writePDF(list, `Bao_gia_${list.length}_mau_ban_tho_${todayISO()}.pdf`, `Báo giá ${list.length} mẫu ban thờ – Gốm Vũ Gia`);
+}
+async function writePDF(list, filename, title) {
+  if (!needLib("pdf")) return;
   busy("Đang tạo PDF khổ A4 dọc…");
   try {
-    const pages = await buildExport(d, false);
     const pdf = new window.jspdf.jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
     const pageImgs = [];
-    for (let i = 0; i < pages.length; i++) {
-      busy(`Đang tạo PDF… trang ${i + 1}/${pages.length}`);
-      const cv = await snap(pages[i], 3);
-      if (i) pdf.addPage("a4", "portrait");
-      const jpg = cv.toDataURL("image/jpeg", 0.92); pageImgs.push(jpg);
-      pdf.addImage(jpg, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+    for (let k = 0; k < list.length; k++) {
+      const pages = await buildExport(list[k], false);
+      for (let i = 0; i < pages.length; i++) {
+        busy(list.length > 1 ? `Đang tạo PDF… mẫu ${k + 1}/${list.length}` : `Đang tạo PDF… trang ${i + 1}/${pages.length}`);
+        const cv = await snap(pages[i], 3);
+        if (pageImgs.length) pdf.addPage("a4", "portrait");
+        const jpg = cv.toDataURL("image/jpeg", 0.92); pageImgs.push(jpg);
+        pdf.addImage(jpg, "JPEG", 0, 0, 210, 297, undefined, "FAST");
+      }
     }
-    pdf.setProperties({ title: (d.name || "Báo giá") + " – Gốm Vũ Gia", creator: "Gốm Vũ Gia" });
+    pdf.setProperties({ title, creator: "Gốm Vũ Gia" });
     const blob = pdf.output("blob");
     $("#xp-stage").innerHTML = ""; busy();
-    await saveFile(fileBase(d) + ".pdf", blob, pageImgs);
+    await saveFile(filename, blob, pageImgs);
   } catch (e) { busy(); toast("Không tạo được PDF: " + errMsg(e), "bad"); }
 }
 async function exportPNG(d = S.draft) {

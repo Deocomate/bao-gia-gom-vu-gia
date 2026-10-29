@@ -17,7 +17,7 @@ src/                 Mã nguồn giao diện
   js/3_prices.js     Bảng giá: sửa giá trực tiếp, hộp thêm/sửa/xóa sản phẩm, điều chỉnh giá hàng loạt, xuất Excel
   js/4_import.js     Nhập Excel/CSV: chọn sheet, dòng tiêu đề, ghép cột, nhiều cột giá, đối chiếu
   js/5_builder.js    Tạo bộ ban thờ, danh mục, bảng chi tiết, tổng tiền, lưu mẫu/báo giá
-  js/6_export.js     Dựng trang A4, tự gói 1 trang, xuất PDF/PNG, in, xem trước
+  js/6_export.js     Dựng trang A4, tự gói 1 trang, xuất PDF/PNG (cả PDF gộp nhiều mẫu), in, xem trước
   js/7_lists.js      Danh sách mẫu, báo giá, sao lưu/khôi phục, đưa dữ liệu bản cũ (trên trình duyệt) lên máy chủ
   js/8_compose.js    Tự sắp ảnh ban thờ từ ảnh sản phẩm (tách nền, xếp hàng, kéo thả)
   js/9_start.js      Khởi chạy
@@ -109,6 +109,10 @@ Nhãn góc phải thanh trên cùng cho biết lần xuất sao lưu gần nhấ
 - **Đơn giá trong bộ / báo giá luôn theo bảng giá hiện tại**: lưu giá mới trong bảng giá thì mọi mẫu, báo giá (cả bản xuất PDF/PNG) dùng ngay giá đó.
 - **Sửa giá cho riêng một bộ / báo giá**: ở trang Tạo bộ ban thờ, gõ thẳng vào cột Đơn giá của từng dòng. Dòng đó thành “giá sửa tay”, giữ nguyên khi bảng giá đổi, và hiện nhãn kèm giá bảng giá cùng hai nút: **Dùng giá bảng** (bỏ giá sửa tay) và **Lưu vào bảng giá** (ghi giá này vào bảng giá để mọi bộ dùng chung). Gõ lại đúng giá bảng giá thì dòng tự theo bảng giá như cũ.
 - **Điều chỉnh giá hàng loạt**: tăng/giảm theo % hoặc số tiền, hay đặt cùng một giá, cho các dòng đang hiện theo bộ lọc, có làm tròn; xem trước rồi mới lưu.
+
+## Xuất PDF gộp nhiều mẫu
+Ở trang **Mẫu ban thờ**, tích ô ở góc ảnh từng mẫu (hoặc **Chọn tất cả**, áp dụng cho các mẫu đang lọc) rồi bấm **Xuất PDF gộp**.
+File PDF A4 dọc có báo giá của từng mẫu, mỗi mẫu bắt đầu ở trang mới, xếp theo thứ tự tích chọn. Mẫu nào còn sản phẩm chưa có giá thì không xuất được và được nêu tên.
 
 Cấu trúc file sao lưu: [docs/database_schema.md](docs/database_schema.md).
 

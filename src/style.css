@@ -301,7 +301,13 @@ table.items .cell-inp{border-color:var(--line)}
 
 /* Danh sách mẫu */
 .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.tcard{display:flex;flex-direction:column;overflow:hidden}
+.tcard{display:flex;flex-direction:column;overflow:hidden;position:relative}
+.tcard.sel{border-color:var(--lam);box-shadow:0 0 0 2px var(--lam)}
+.tcard .tc-sel{position:absolute;top:8px;left:8px;z-index:1;display:grid;place-items:center;width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--line-strong);cursor:pointer}
+.tcard .tc-sel input{width:20px;height:20px;margin:0;accent-color:var(--lam);cursor:pointer}
+.sel-bar{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:10px 14px;margin-bottom:14px}
+.sel-bar .check{display:inline-flex;align-items:center;gap:8px;font-weight:500;cursor:pointer}
+.sel-bar .grow{flex:1 1 220px;font-size:13px}
 .tcard .tc-img{aspect-ratio:4/3;background:var(--sunk);display:grid;place-items:center;color:var(--muted);border-bottom:1px solid var(--line)}
 .tcard .tc-img img{width:100%;height:100%;object-fit:contain}
 .tcard .tc-body{padding:12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}

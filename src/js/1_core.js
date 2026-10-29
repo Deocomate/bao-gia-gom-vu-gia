@@ -58,7 +58,7 @@ const S = {
   draft: null, draftBase: "", view: "prices", imgURL: new Map(), imgMeta: new Map(),
   pe: null, peFilter: { q: "", group: "", glaze: "", size: "", status: "active" },
   cat: { q: "", group: "", glaze: "" }, cardSel: new Map(), catOpen: false, catHidden: false,
-  tplQ: "", quoteQ: "", downloads: undefined, framed: false
+  tplQ: "", tplSel: new Set(), quoteQ: "", downloads: undefined, framed: false
 };
 
 /* ===================== Dữ liệu trên máy chủ =====================

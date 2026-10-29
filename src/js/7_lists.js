@@ -8,9 +8,14 @@ function renderTemplates() {
   const el = $("#view-templates");
   const q = norm(S.tplQ);
   const list = [...S.records.values()].filter(r => r.kind === "template" && (!q || norm(r.name + " " + r.desc).includes(q))).sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+  const n = selectedTemplates().length, allOn = list.length && list.every(r => S.tplSel.has(r.id)), someOn = list.some(r => S.tplSel.has(r.id));
   el.innerHTML = `<div class="view-head"><div><h1>Mẫu ban thờ</h1><p>Cấu hình lưu sẵn để dùng lại. Nhân bản để thêm/bớt mà không đổi mẫu gốc; tạo báo giá cho khách từ một mẫu.</p></div>
     <div class="btn-row"><input class="inp" type="search" id="tpl-q" placeholder="Tìm mẫu…" value="${esc(S.tplQ)}" style="width:220px"><button class="btn primary" data-act="new">${ICON.plus} Tạo bộ mới</button></div></div>
-    ${list.length ? `<div class="tgrid">${list.map(r => { const c = calc(r), pd = priceDiffs(r).length; return `<article class="card tcard">
+    ${list.length ? `<div class="panel sel-bar"><label class="check"><input type="checkbox" id="tpl-all" ${allOn ? "checked" : ""}> Chọn tất cả${q ? " mẫu đang lọc" : ""}</label>
+      <span class="muted grow">${n ? `Đã chọn <b>${n}</b> mẫu. Trong file PDF, các mẫu xếp theo thứ tự bạn tích chọn.` : "Tích chọn nhiều mẫu để xuất chung một file PDF báo giá."}</span>
+      ${n ? `<button class="btn sm ghost" data-act="sel-clear">Bỏ chọn</button>` : ""}<button class="btn sm primary" data-act="pdf-sel" ${n ? "" : "disabled"}>Xuất PDF gộp${n ? ` (${n})` : ""}</button></div>
+    <div class="tgrid">${list.map(r => { const c = calc(r), pd = priceDiffs(r).length, on = S.tplSel.has(r.id); return `<article class="card tcard${on ? " sel" : ""}">
+      <label class="tc-sel" title="Chọn để xuất PDF gộp"><input type="checkbox" data-sel="${r.id}" ${on ? "checked" : ""} aria-label="Chọn mẫu ${esc(r.name || "")}"></label>
       ${recThumb(r, "tc-img")}
       <div class="tc-body"><h3>${esc(r.name || "Chưa đặt tên")}</h3>${r.desc ? `<div class="muted" style="font-size:13px">${esc(r.desc)}</div>` : ""}
         <div class="muted" style="font-size:12.5px">${r.items.length} dòng sản phẩm · ${c.count} SP · cập nhật ${fmtDate(r.updatedAt)}</div>
@@ -19,7 +24,19 @@ function renderTemplates() {
       <div class="tc-acts"><button class="btn sm primary" data-act="open" data-id="${r.id}">Mở / sửa</button><button class="btn sm" data-act="quote" data-id="${r.id}">Tạo báo giá</button><button class="btn sm" data-act="dup" data-id="${r.id}">Nhân bản</button><button class="btn sm ghost danger" data-act="del" data-id="${r.id}">Xóa</button></div>
     </article>`; }).join("")}</div>` : `<div class="panel empty">${q ? "Không có mẫu khớp tìm kiếm." : `Chưa có mẫu nào. Vào <b>Tạo bộ ban thờ</b>, chọn sản phẩm rồi bấm <b>Lưu mẫu</b>.`}</div>`}`;
   $("#tpl-q").oninput = debounce(e => { S.tplQ = e.target.value; renderTemplates(); const i = $("#tpl-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250);
+  const all = $("#tpl-all"); if (all) all.indeterminate = someOn && !allOn;
   el.onclick = onListClick;
+  el.onchange = e => {
+    const t = e.target;
+    if (t.id === "tpl-all") list.forEach(r => t.checked ? S.tplSel.add(r.id) : S.tplSel.delete(r.id));
+    else if (t.dataset.sel) t.checked ? S.tplSel.add(t.dataset.sel) : S.tplSel.delete(t.dataset.sel);
+    else return;
+    renderTemplates();
+  };
+}
+/* Mẫu đang tích chọn, theo thứ tự tích; bỏ qua mẫu đã bị xóa */
+function selectedTemplates() {
+  return [...S.tplSel].map(id => S.records.get(id)).filter(r => r && r.kind === "template");
 }
 async function onListClick(e) {
   const b = e.target.closest("[data-act]"); if (!b) return;
@@ -29,6 +46,8 @@ async function onListClick(e) {
   else if (a === "quote") quoteFromTemplate(id);
   else if (a === "dup") duplicateRecord(id);
   else if (a === "del") deleteRecord(id);
+  else if (a === "pdf-sel") exportPDFMerged(selectedTemplates());
+  else if (a === "sel-clear") { S.tplSel.clear(); renderTemplates(); }
   else if (a === "pdf" || a === "png") { const r = S.records.get(id); a === "pdf" ? exportPDF(r) : exportPNG(r); }
 }
 async function duplicateRecord(id) {
