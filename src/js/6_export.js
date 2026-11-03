@@ -1,7 +1,8 @@
 /* ===================== XUẤT PDF / PNG / IN ===================== */
 function slug(s) { return noDia(s).replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || "bao_gia"; }
 function fileBase(d) {
-  return d.kind === "quote" && d.quoteCode ? `Bao_gia_${d.quoteCode}_${slug(d.customer.name)}` : `Bo_ban_tho_${slug(d.name)}_${todayISO()}`;
+  if (d.kind === "quote" && d.quoteCode) return `Bao_gia_${d.quoteCode}_${slug(d.customer.name)}`;
+  return d.kind === "quote" && d.customer?.name ? `Bao_gia_${slug(d.customer.name)}_${todayISO()}` : `Bo_ban_tho_${slug(d.name)}_${todayISO()}`;
 }
 function xpParts(d) {
   const c = calc(d), isQ = d.kind === "quote";
@@ -107,18 +108,19 @@ function preExport(d) {
 async function snap(el, scale) {
   return html2canvas(el, { scale, backgroundColor: "#ffffff", useCORS: true, logging: false, width: el.offsetWidth, height: el.offsetHeight, windowWidth: 1400, scrollX: 0, scrollY: 0 });
 }
-async function exportPDF(d = S.draft) {
+/* opts.share: gửi qua bảng chia sẻ của điện thoại (Zalo…) thay vì tải về */
+async function exportPDF(d = S.draft, opts = {}) {
   if (!preExport(d)) return;
-  await writePDF([d], fileBase(d) + ".pdf", (d.name || "Báo giá") + " – Gốm Vũ Gia");
+  await writePDF([d], fileBase(d) + ".pdf", (d.name || "Báo giá") + " – Gốm Vũ Gia", opts.share);
 }
 /* Gộp nhiều mẫu vào một file PDF: mỗi mẫu bắt đầu ở trang mới, giữ đúng thứ tự trong danh sách */
-async function exportPDFMerged(list) {
+async function exportPDFMerged(list, opts = {}) {
   if (!list.length) return toast("Hãy tích chọn ít nhất một mẫu", "bad");
   const iss = list.flatMap(d => blockingIssues(d, true).map(x => `${d.name || "Chưa đặt tên"}: ${x}`));
   if (iss.length) return showIssues("Chưa thể xuất PDF gộp", iss);
-  await writePDF(list, `Bao_gia_${list.length}_mau_ban_tho_${todayISO()}.pdf`, `Báo giá ${list.length} mẫu ban thờ – Gốm Vũ Gia`);
+  await writePDF(list, `Bao_gia_${list.length}_mau_ban_tho_${todayISO()}.pdf`, `Báo giá ${list.length} mẫu ban thờ – Gốm Vũ Gia`, opts.share);
 }
-async function writePDF(list, filename, title) {
+async function writePDF(list, filename, title, share = false) {
   if (!needLib("pdf")) return;
   busy("Đang tạo PDF khổ A4 dọc…");
   try {
@@ -137,10 +139,10 @@ async function writePDF(list, filename, title) {
     pdf.setProperties({ title, creator: "Gốm Vũ Gia" });
     const blob = pdf.output("blob");
     $("#xp-stage").innerHTML = ""; busy();
-    await saveFile(filename, blob, pageImgs);
+    await saveFile(filename, blob, pageImgs, share);
   } catch (e) { busy(); toast("Không tạo được PDF: " + errMsg(e), "bad"); }
 }
-async function exportPNG(d = S.draft) {
+async function exportPNG(d = S.draft, opts = {}) {
   if (!preExport(d) || !needLib("png")) return;
   busy("Đang tạo ảnh PNG…");
   try {
@@ -151,7 +153,7 @@ async function exportPNG(d = S.draft) {
     const blob = await new Promise(r => cv.toBlob(r, "image/png"));
     $("#xp-stage").innerHTML = ""; busy();
     if (!blob) throw new Error("Ảnh quá lớn");
-    await saveFile(fileBase(d) + ".png", blob);
+    await saveFile(fileBase(d) + ".png", blob, null, opts.share);
   } catch (e) { busy(); toast("Không tạo được ảnh: " + errMsg(e), "bad"); }
 }
 async function printQuote(d = S.draft) {
@@ -178,15 +180,16 @@ async function openPreview(d = S.draft) {
   let pages, single;
   try { pages = await buildExport(d, false, { stamp: true }); } catch (e) { busy(); return toast("Không dựng được bản xem trước: " + errMsg(e), "bad"); }
   busy();
-  const iss = blockingIssues(d, true);
+  const iss = blockingIssues(d, true), phone = isPhone();
   const close = modal({ title: `Xem trước – ${pages.length} trang A4 dọc`, size: "wide",
     body: `${iss.length ? `<div class="banner bad"><span class="grow">${esc(iss.join(" "))}</span></div>` : ""}<div class="preview-pages" id="pv"></div>`,
-    foot: `<span class="grow muted">Bản xuất ẩn các nút thao tác, chỉ gồm ảnh, bảng chi tiết và tổng tiền.</span><button class="btn" data-close>Đóng</button><button class="btn" data-x="print">In</button><button class="btn" data-x="png">Xuất PNG</button><button class="btn primary" data-x="pdf">Xuất PDF</button>`,
+    foot: phone ? `<button class="btn" data-close>Đóng</button><button class="btn" data-x="png">${ICON.img} Gửi ảnh</button><button class="btn primary" data-x="pdf">${ICON.share} Gửi PDF</button>`
+      : `<span class="grow muted">Bản xuất ẩn các nút thao tác, chỉ gồm ảnh, bảng chi tiết và tổng tiền.</span><button class="btn" data-close>Đóng</button><button class="btn" data-x="print">In</button><button class="btn" data-x="png">Xuất PNG</button><button class="btn primary" data-x="pdf">Xuất PDF</button>`,
     onMount: (el, close) => {
       const pv = $("#pv", el);
-      const avail = Math.min(794, (pv.clientWidth || 900) - 32);
+      const avail = Math.min(794, (pv.clientWidth || 900) - (phone ? 16 : 32));
       const s = avail / 794;
       pages.forEach(p => { const holder = document.createElement("div"); holder.className = "pg-holder"; holder.style.width = 794 * s + "px"; holder.style.height = p.offsetHeight * s + "px"; p.style.transform = `scale(${s})`; p.style.transformOrigin = "0 0"; holder.appendChild(p); pv.appendChild(holder); });
-      $$("[data-x]", el).forEach(b => b.onclick = () => { const x = b.dataset.x; close(); x === "pdf" ? exportPDF(d) : x === "png" ? exportPNG(d) : printQuote(d); });
+      $$("[data-x]", el).forEach(b => b.onclick = () => { const x = b.dataset.x; close(); x === "pdf" ? exportPDF(d, { share: phone }) : x === "png" ? exportPNG(d, { share: phone }) : printQuote(d); });
     } });
 }

@@ -22,8 +22,21 @@ const ICON = {
   edit: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
   img: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>',
   upload: '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>',
-  vase: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v3c-3 2-5 5-5 9a7 7 0 0014 0c0-4-2-7-5-9V3"/></svg>'
+  vase: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v3c-3 2-5 5-5 9a7 7 0 0014 0c0-4-2-7-5-9V3"/></svg>',
+  more: '<svg class="icon" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+  share: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 11v8a2 2 0 002 2h10a2 2 0 002-2v-8"/></svg>',
+  dl: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>',
+  addsq: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M12 8v8M8 12h8"/></svg>',
+  set: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v3c-3 2-5 5-5 9a7 7 0 0014 0c0-4-2-7-5-9V3"/><path d="M12 11v6M9 14h6"/></svg>',
+  doc: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
+  grid: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+  tag: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4a1 1 0 011-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/></svg>',
+  save: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2z"/><path d="M8 3v5h7M8 21v-7h8v7"/></svg>',
+  out: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg>',
+  filter: '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>'
 };
+/* Giao diện điện thoại (cùng ngưỡng với CSS): nút gom vào thanh dưới và bảng thao tác */
+const isPhone = () => matchMedia("(max-width:820px)").matches;
 
 /* Giá tiền: trả về {ok, value} — value null nghĩa là “Chưa có giá”. Không bao giờ đổi ô trống thành 0. */
 function parsePrice(v) {
@@ -56,7 +69,7 @@ const DEFAULT_UNITS = ["chiếc", "đôi", "bộ", "cái"];
 const S = {
   dbOK: true, products: new Map(), records: new Map(), meta: null,
   draft: null, draftBase: "", view: "prices", imgURL: new Map(), imgMeta: new Map(),
-  pe: null, peFilter: { q: "", group: "", glaze: "", size: "", status: "active" },
+  pe: null, peFilter: { q: "", group: "", glaze: "", size: "", status: "active" }, peFiltersOpen: false,
   cat: { q: "", group: "", glaze: "" }, cardSel: new Map(), catOpen: false, catHidden: false,
   tplQ: "", tplSel: new Set(), quoteQ: "", downloads: undefined, framed: false
 };
@@ -135,10 +148,12 @@ async function storeImageFile(file, maxSide = 2400) {
 async function imageMeta(id) { if (!S.imgMeta.has(id)) await imageURL(id); return S.imgMeta.get(id); }
 
 /* ===================== Thông báo, hộp thoại ===================== */
-function toast(msg, kind = "ok", ms = 3200) {
+/* action = {text, run}: nút trong thông báo, ví dụ “Hoàn tác” */
+function toast(msg, kind = "ok", ms = 3200, action) {
   const el = document.createElement("div");
   el.className = "toast " + kind; el.setAttribute("role", kind === "bad" ? "alert" : "status");
-  el.innerHTML = `<div>${esc(msg)}</div>`;
+  el.innerHTML = `<div class="grow">${esc(msg)}</div>${action ? `<button type="button">${esc(action.text)}</button>` : ""}`;
+  if (action) $("button", el).onclick = () => { el.remove(); action.run(); };
   $("#toasts").appendChild(el);
   setTimeout(() => el.remove(), kind === "bad" ? Math.max(ms, 6500) : ms);
 }
@@ -177,6 +192,13 @@ function confirmBox({ title, html, okText = "Đồng ý", danger = false, cancel
     });
   });
 }
+/* Bảng thao tác (điện thoại: trượt lên từ cạnh dưới). items: [{text, sub, icon, cls, run}], mục rỗng bị bỏ qua */
+function actionSheet(title, items) {
+  const list = items.filter(Boolean);
+  modal({ title, size: "sheet",
+    body: `<div class="acts">${list.map((x, i) => `<button type="button" class="act ${x.cls || ""}" data-i="${i}" ${x.disabled ? "disabled" : ""}>${x.icon || ""}<span>${esc(x.text)}${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span></button>`).join("")}</div>`,
+    onMount: (el, close) => $(".acts", el).addEventListener("click", e => { const b = e.target.closest("[data-i]"); if (!b) return; close(); list[+b.dataset.i].run(); }) });
+}
 function choiceBox({ title, html, choices }) {
   return new Promise(res => {
     let done = false;
@@ -196,7 +218,30 @@ async function getDownloads() {
   } else S.downloads = null;
   return S.downloads;
 }
-async function saveFile(filename, blob, previews) {
+/* Gửi file qua bảng chia sẻ của điện thoại (Zalo, Tin nhắn, Lưu vào Tệp…).
+   true: đã gửi · false: người dùng hủy · null: thiết bị không chia sẻ được file → tải về như thường */
+async function shareFile(filename, blob) {
+  const file = new File([blob], filename, { type: blob.type });
+  try { if (!navigator.canShare || !navigator.canShare({ files: [file] })) return null; } catch { return null; }
+  const send = async () => { try { await navigator.share({ files: [file], title: filename }); return true; } catch (e) { return e && e.name === "AbortError" ? false : e; } };
+  let r = await send();
+  // Tạo file mất vài giây nên trình duyệt có thể không còn coi là “vừa bấm”: hỏi lại bằng một nút bấm mới
+  if (r instanceof Error && r.name === "NotAllowedError") r = await new Promise(res => {
+    let done = false;
+    modal({ title: "File đã sẵn sàng", body: `<p><b>${esc(filename)}</b></p><p class="muted">Bấm <b>Gửi</b> để chọn Zalo, Tin nhắn hoặc lưu vào máy.</p>`,
+      foot: `<button class="btn" data-dl>${ICON.dl} Tải về</button><button class="btn primary" data-sh>${ICON.share} Gửi</button>`, onClose: () => { if (!done) res(false); },
+      onMount: (el, close) => { $("[data-sh]", el).onclick = async () => { done = true; close(); res(await send()); }; $("[data-dl]", el).onclick = () => { done = true; close(); res(null); }; } });
+  });
+  if (r instanceof Error) return null;
+  return r;
+}
+/* share: mở bảng chia sẻ của điện thoại thay vì tải về (nút “Gửi” trên điện thoại) */
+async function saveFile(filename, blob, previews, share = false) {
+  if (share && !S.framed) {
+    const r = await shareFile(filename, blob);
+    if (r === true) { toast("Đã gửi: " + filename); return true; }
+    if (r === false) return false;
+  }
   const dl = await getDownloads();
   let reason = "";
   if (dl) {

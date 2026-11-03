@@ -127,7 +127,9 @@ async function boot() {
     S.meta = { groups: [], counters: {}, priceVersion: 0 }; S.draft = newDraft();
     toast("Không tải được dữ liệu từ máy chủ: " + errMsg(e) + ". Hãy tải lại trang.", "bad", 9000);
   }
+  renderBnav();
   bindGlobal();
+  updateInstallUI();
   let v = "builder";
   try { v = localStorage.getItem("gvg_view") || v; } catch { }
   if (!S.products.size) v = "prices";
@@ -155,6 +157,56 @@ function updateStoreChip() {
 
 /* ===================== Điều hướng ===================== */
 const VIEWS = { builder: () => renderBuilder(), quotes: () => renderQuotes(), templates: () => renderTemplates(), prices: () => renderPrices(), data: () => renderData() };
+const VIEW_TITLES = { builder: "Tạo bộ ban thờ", quotes: "Báo giá khách hàng", templates: "Mẫu ban thờ", prices: "Bảng giá", data: "Sao lưu & dữ liệu" };
+/* Thanh mục dưới đáy màn hình điện thoại (CSS ẩn trên máy tính) */
+function renderBnav() {
+  const it = (v, icon, text) => `<button type="button" class="bn" data-view="${v}" aria-selected="false">${icon}<span>${text}</span></button>`;
+  $("#bnav").innerHTML = it("builder", ICON.set, "Tạo bộ") + it("quotes", ICON.doc, "Báo giá") + it("templates", ICON.grid, "Mẫu") + it("prices", ICON.tag, "Bảng giá")
+    + `<button type="button" class="bn" id="bnav-more" aria-selected="false">${ICON.more}<span>Thêm</span></button>`;
+}
+function openMoreSheet() {
+  actionSheet("Thêm", [
+    { text: "Sao lưu & dữ liệu", sub: $("#store-chip-text").textContent, icon: ICON.save, run: () => show("data") },
+    canInstall() && { text: "Cài ứng dụng lên màn hình chính", sub: "Mở nhanh như một app, toàn màn hình", icon: ICON.addsq, run: installApp },
+    { text: "Đăng xuất", sub: $("#user-name").textContent ? "Tài khoản " + $("#user-name").textContent : "", icon: ICON.out, cls: "danger", run: logout }
+  ]);
+}
+
+/* ===================== Cài ứng dụng lên màn hình chính ===================== */
+let installEvt = null;
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+/* Chrome/Edge/Android báo được cài (beforeinstallprompt); iPhone/iPad và máy cảm ứng khác thì hiện hướng dẫn */
+function canInstall() { return !S.framed && !isStandalone() && (!!installEvt || isIOS() || matchMedia("(pointer:coarse)").matches); }
+function updateInstallUI() {
+  const b = $("#install-btn"); if (!b) return;
+  b.hidden = !canInstall();
+  b.innerHTML = `${ICON.addsq} Cài ứng dụng`;
+  if (S.view === "builder") renderBanners();
+}
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; updateInstallUI(); });
+window.addEventListener("appinstalled", () => { installEvt = null; updateInstallUI(); toast("Đã cài ứng dụng Gốm Vũ Gia lên màn hình chính"); });
+async function installApp() {
+  if (installEvt) {
+    const e = installEvt; installEvt = null;
+    try { await e.prompt(); await e.userChoice; } catch { }
+    updateInstallUI(); return;
+  }
+  const ua = navigator.userAgent, inApp = /FBAN|FBAV|Instagram|Zalo|Line\/|; wv\)/i.test(ua);
+  const step = (n, html) => `<li><b>${n}</b><span>${html}</span></li>`;
+  let body;
+  if (isIOS() && inApp) body = `<p>Bạn đang mở trang trong ứng dụng khác (Zalo, Facebook…). Hãy mở bằng <b>Safari</b> trước: bấm nút <b>⋯</b> hoặc biểu tượng la bàn → <b>Mở bằng Safari</b>, rồi bấm lại <b>Cài ứng dụng</b>.</p>`;
+  else if (isIOS()) body = `<ol class="isteps">${step(1, `Bấm nút <b>Chia sẻ</b> <span class="ikey">${ICON.share}</span> ở thanh dưới của Safari (iPad: góc trên bên phải).`)}${step(2, `Kéo xuống, chọn <b>Thêm vào MH chính</b> <span class="ikey">${ICON.addsq}</span>.`)}${step(3, `Bấm <b>Thêm</b>. Biểu tượng <b>Gốm Vũ Gia</b> xuất hiện trên màn hình chính.`)}</ol>
+    <p class="muted" style="margin:12px 0 0">Mở ứng dụng từ biểu tượng mới và <b>đăng nhập lại một lần</b> (ứng dụng trên màn hình chính không dùng chung đăng nhập với Safari). Phiên đăng nhập giữ 30 ngày.</p>`;
+  else body = `<ol class="isteps">${step(1, `Mở menu của trình duyệt (nút <b>⋮</b> hoặc <b>⋯</b>).`)}${step(2, `Chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b>.`)}${step(3, `Xác nhận. Biểu tượng <b>Gốm Vũ Gia</b> xuất hiện trên màn hình chính.`)}</ol>`;
+  modal({ title: "Cài ứng dụng lên màn hình chính", size: "sheet", body: `<div class="iapp"><img src="icon-180.png" alt="" width="56" height="56"><div><b>Gốm Vũ Gia</b><div class="muted">Báo giá đồ thờ · mở toàn màn hình như app</div></div></div>${body}`, foot: `<button class="btn primary" data-close>Đã hiểu</button>` });
+}
+/* Lời nhắc cài app ở trang Tạo bộ (chỉ điện thoại, tắt được) */
+function installHintOn() {
+  if (!isPhone() || !canInstall()) return false;
+  try { return !localStorage.getItem("gvg_install_hint_off"); } catch { return false; }
+}
+function hideInstallHint() { try { localStorage.setItem("gvg_install_hint_off", "1"); } catch { } renderBanners(); }
 async function leaveGuard(target) {
   if (S.pe && S.pe.dirty.size && S.view === "prices" && target !== "prices") {
     const r = await choiceBox({
@@ -173,7 +225,9 @@ async function show(v, force) {
   if (!force && !(await leaveGuard(v))) return;
   S.view = v;
   try { localStorage.setItem("gvg_view", v); } catch { }
-  $$(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
+  $$(".tab,.bn[data-view]").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === v)));
+  $("#bnav-more")?.setAttribute("aria-selected", String(v === "data"));
+  $("#appbar-title").textContent = VIEW_TITLES[v];
   Object.keys(VIEWS).forEach(k => $("#view-" + k).hidden = k !== v);
   VIEWS[v]();
   window.scrollTo(0, 0);
@@ -181,8 +235,10 @@ async function show(v, force) {
 function bindGlobal() {
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-view]");
-    if (t && (t.classList.contains("tab") || t.id === "store-chip" || t.dataset.go)) { e.preventDefault(); show(t.dataset.view); }
+    if (t && (t.classList.contains("tab") || t.classList.contains("bn") || t.id === "store-chip" || t.dataset.go)) { e.preventDefault(); show(t.dataset.view); }
     if (e.target.closest("#logout")) logout();
+    if (e.target.closest("#bnav-more")) openMoreSheet();
+    if (e.target.closest("#install-btn")) installApp();
     $$("details.menu[open]").forEach(m => { if (!m.contains(e.target)) m.open = false; });
   });
   window.addEventListener("beforeunload", e => {

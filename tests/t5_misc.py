@@ -42,11 +42,11 @@ with sync_playwright() as p:
     page.fill("#u", ADMIN[0]); page.fill("#p", ADMIN[1]); page.click("#b"); page.wait_for_timeout(1200)
     # Điện thoại
     page.set_viewport_size({"width": 390, "height": 844}); page.wait_for_timeout(300)
-    page.click("#tab-builder"); page.wait_for_timeout(500)
+    page.click(".bn[data-view=builder]"); page.wait_for_timeout(500)
     page.screenshot(path=f"{SHOT}/26_mobile_builder.png", full_page=False)
     page.mouse.wheel(0, 900); page.wait_for_timeout(300)
     page.screenshot(path=f"{SHOT}/27_mobile_builder2.png", full_page=False)
-    page.click("#tab-prices"); page.wait_for_timeout(500)
+    page.click(".bn[data-view=prices]"); page.wait_for_timeout(500)
     page.screenshot(path=f"{SHOT}/28_mobile_prices.png", full_page=False)
     print("tràn ngang:", page.evaluate("document.documentElement.scrollWidth > window.innerWidth"))
     print("errs:", errs, errs2)

@@ -54,13 +54,18 @@ def route(page):
     page.route("**/*", handle)
 
 
-def new_ctx(p, user_dir=os.path.join(OUT, "profile"), w=1440, h=900, fresh=False, seed=True, login=True):
-    """fresh=True: hồ sơ trình duyệt mới và dữ liệu máy chủ đặt lại (seed: nạp sẵn dữ liệu chính thức)."""
+IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
+
+
+def new_ctx(p, user_dir=os.path.join(OUT, "profile"), w=1440, h=900, fresh=False, seed=True, login=True, iphone=False):
+    """fresh=True: hồ sơ trình duyệt mới và dữ liệu máy chủ đặt lại (seed: nạp sẵn dữ liệu chính thức).
+    iphone=True: giả lập iPhone (màn cảm ứng, user agent Safari iOS)."""
     if fresh:
         if os.path.exists(user_dir):
             import shutil; shutil.rmtree(user_dir)
         reset_data(seed)
-    ctx = p.chromium.launch_persistent_context(user_dir, headless=True, viewport={"width": w, "height": h}, accept_downloads=True)
+    dev = {"is_mobile": True, "has_touch": True, "user_agent": IPHONE_UA, "device_scale_factor": 2} if iphone else {}
+    ctx = p.chromium.launch_persistent_context(user_dir, headless=True, viewport={"width": w, "height": h}, accept_downloads=True, **dev)
     page = ctx.pages[0] if ctx.pages else ctx.new_page()
     route(page)
     if login:

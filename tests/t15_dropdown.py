@@ -40,6 +40,7 @@ with sync_playwright() as p:
     page.click(".modal [data-close] >> nth=0"); page.wait_for_timeout(200)
     # Điện thoại
     page.set_viewport_size({"width": 390, "height": 844}); page.wait_for_timeout(300)
+    page.click("[data-act=pe-filters]"); page.wait_for_timeout(200)
     page.click("#pe-group + .xs-btn"); page.wait_for_timeout(300)
     page.screenshot(path=f"{SHOT}/95_dd_mobile.png")
     print("tràn ngang:", page.evaluate("document.documentElement.scrollWidth > innerWidth"))

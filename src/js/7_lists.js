@@ -11,9 +11,9 @@ function renderTemplates() {
   const n = selectedTemplates().length, allOn = list.length && list.every(r => S.tplSel.has(r.id)), someOn = list.some(r => S.tplSel.has(r.id));
   el.innerHTML = `<div class="view-head"><div><h1>Mẫu ban thờ</h1><p>Cấu hình lưu sẵn để dùng lại. Nhân bản để thêm/bớt mà không đổi mẫu gốc; tạo báo giá cho khách từ một mẫu.</p></div>
     <div class="btn-row"><input class="inp" type="search" id="tpl-q" placeholder="Tìm mẫu…" value="${esc(S.tplQ)}" style="width:220px"><button class="btn primary" data-act="new">${ICON.plus} Tạo bộ mới</button></div></div>
-    ${list.length ? `<div class="panel sel-bar"><label class="check"><input type="checkbox" id="tpl-all" ${allOn ? "checked" : ""}> Chọn tất cả${q ? " mẫu đang lọc" : ""}</label>
+    ${list.length ? `<div class="panel sel-bar${n ? " on" : ""}"><label class="check"><input type="checkbox" id="tpl-all" ${allOn ? "checked" : ""}> Chọn tất cả${q ? " mẫu đang lọc" : ""}</label>
       <span class="muted grow">${n ? `Đã chọn <b>${n}</b> mẫu. Trong file PDF, các mẫu xếp theo thứ tự bạn tích chọn.` : "Tích chọn nhiều mẫu để xuất chung một file PDF báo giá."}</span>
-      ${n ? `<button class="btn sm ghost" data-act="sel-clear">Bỏ chọn</button>` : ""}<button class="btn sm primary" data-act="pdf-sel" ${n ? "" : "disabled"}>Xuất PDF gộp${n ? ` (${n})` : ""}</button></div>
+      ${n ? `<button class="btn sm ghost" data-act="sel-clear">Bỏ chọn</button>` : ""}<button class="btn sm primary" data-act="pdf-sel" ${n ? "" : "disabled"}><span class="d-only">Xuất PDF gộp</span><span class="m-only">${ICON.share} Gửi PDF gộp</span>${n ? ` (${n})` : ""}</button></div>
     <div class="tgrid">${list.map(r => { const c = calc(r), pd = priceDiffs(r).length, on = S.tplSel.has(r.id); return `<article class="card tcard${on ? " sel" : ""}">
       <label class="tc-sel" title="Chọn để xuất PDF gộp"><input type="checkbox" data-sel="${r.id}" ${on ? "checked" : ""} aria-label="Chọn mẫu ${esc(r.name || "")}"></label>
       ${recThumb(r, "tc-img")}
@@ -21,7 +21,7 @@ function renderTemplates() {
         <div class="muted" style="font-size:12.5px">${r.items.length} dòng sản phẩm · ${c.count} SP · cập nhật ${fmtDate(r.updatedAt)}</div>
         <div class="tc-total">${money(c.total)} ${c.missing ? '<span class="chip bad">Tạm tính</span>' : ""}</div>
         ${pd ? `<div><span class="chip gold">Giá sửa tay (${pd} dòng)</span></div>` : ""}</div>
-      <div class="tc-acts"><button class="btn sm primary" data-act="open" data-id="${r.id}">Mở / sửa</button><button class="btn sm" data-act="quote" data-id="${r.id}">Tạo báo giá</button><button class="btn sm" data-act="dup" data-id="${r.id}">Nhân bản</button><button class="btn sm ghost danger" data-act="del" data-id="${r.id}">Xóa</button></div>
+      <div class="tc-acts"><button class="btn sm primary" data-act="open" data-id="${r.id}">Mở / sửa</button><button class="btn sm" data-act="quote" data-id="${r.id}">Tạo báo giá</button><button class="btn sm d-only" data-act="dup" data-id="${r.id}">Nhân bản</button><button class="btn sm ghost danger d-only" data-act="del" data-id="${r.id}">Xóa</button><button class="btn sm m-only" data-act="rec-more" data-id="${r.id}" aria-label="Thao tác khác: ${esc(r.name || "")}">${ICON.more}</button></div>
     </article>`; }).join("")}</div>` : `<div class="panel empty">${q ? "Không có mẫu khớp tìm kiếm." : `Chưa có mẫu nào. Vào <b>Tạo bộ ban thờ</b>, chọn sản phẩm rồi bấm <b>Lưu mẫu</b>.`}</div>`}`;
   $("#tpl-q").oninput = debounce(e => { S.tplQ = e.target.value; renderTemplates(); const i = $("#tpl-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250);
   const all = $("#tpl-all"); if (all) all.indeterminate = someOn && !allOn;
@@ -46,9 +46,24 @@ async function onListClick(e) {
   else if (a === "quote") quoteFromTemplate(id);
   else if (a === "dup") duplicateRecord(id);
   else if (a === "del") deleteRecord(id);
-  else if (a === "pdf-sel") exportPDFMerged(selectedTemplates());
+  else if (a === "pdf-sel") exportPDFMerged(selectedTemplates(), { share: isPhone() });
+  else if (a === "pdf-send") exportPDF(S.records.get(id), { share: true });
+  else if (a === "rec-more") recordMenu(id);
   else if (a === "sel-clear") { S.tplSel.clear(); renderTemplates(); }
   else if (a === "pdf" || a === "png") { const r = S.records.get(id); a === "pdf" ? exportPDF(r) : exportPNG(r); }
+}
+/* Menu ⋯ của một mẫu / báo giá trên điện thoại */
+function recordMenu(id) {
+  const r = S.records.get(id); if (!r) return;
+  const isQ = r.kind === "quote";
+  actionSheet(isQ ? `Báo giá ${r.quoteCode}` : r.name || "Mẫu ban thờ", [
+    !isQ && { text: "Gửi PDF", sub: "Zalo, Tin nhắn, Mail hoặc lưu vào máy", icon: ICON.share, run: () => exportPDF(r, { share: true }) },
+    { text: "Gửi ảnh (PNG)", icon: ICON.img, run: () => exportPNG(r, { share: true }) },
+    { text: "Xem trước bản A4", icon: ICON.doc, run: () => openPreview(r) },
+    { text: "Tải PDF về máy", icon: ICON.dl, run: () => exportPDF(r) },
+    { text: "Nhân bản", sub: isQ ? "Thành báo giá mới" : "Mẫu gốc không đổi", icon: ICON.addsq, run: () => duplicateRecord(id) },
+    { text: isQ ? "Xóa báo giá" : "Xóa mẫu", icon: ICON.x, cls: "danger", run: () => deleteRecord(id) }
+  ]);
 }
 async function duplicateRecord(id) {
   const r = S.records.get(id); if (!r) return;
@@ -85,16 +100,16 @@ function renderQuotes() {
   const list = [...S.records.values()].filter(r => r.kind === "quote" && (!q || norm([r.quoteCode, r.customer?.name, r.customer?.phone, r.name].join(" ")).includes(q))).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   el.innerHTML = `<div class="view-head"><div><h1>Báo giá khách hàng</h1><p>Đơn giá trong báo giá tự theo bảng giá hiện tại, trừ dòng đã sửa giá tay khi soạn.</p></div>
     <div class="btn-row"><input class="inp" type="search" id="q-q" placeholder="Tìm mã, tên khách, SĐT…" value="${esc(S.quoteQ)}" style="width:240px"></div></div>
-    ${list.length ? `<div class="tbl-wrap"><table class="list"><thead><tr><th style="width:56px"></th><th>Mã báo giá</th><th>Khách hàng</th><th>Bộ đồ thờ</th><th>Ngày</th><th>Hiệu lực</th><th class="r">Tổng thanh toán</th><th style="width:330px"></th></tr></thead><tbody>
+    ${list.length ? `<div class="tbl-wrap"><table class="list qlist"><thead><tr><th style="width:56px"></th><th>Mã báo giá</th><th>Khách hàng</th><th>Bộ đồ thờ</th><th>Ngày</th><th>Hiệu lực</th><th class="r">Tổng thanh toán</th><th style="width:330px"></th></tr></thead><tbody>
     ${list.map(r => { const c = calc(r), expired = r.validUntil && r.validUntil < todayISO(); return `<tr>
       <td>${recThumb(r, "thumb")}</td>
       <td><b class="num">${esc(r.quoteCode)}</b></td>
-      <td><b>${esc(r.customer?.name || "")}</b><div class="muted" style="font-size:12px">${esc([r.customer?.phone, r.customer?.address].filter(Boolean).join(" · "))}</div></td>
+      <td><b>${esc(r.customer?.name || "")}</b><div class="muted" style="font-size:12px">${[r.customer?.phone && `<a class="tel" href="tel:${esc(r.customer.phone.replace(/[^\d+]/g, ""))}">${esc(r.customer.phone)}</a>`, esc(r.customer?.address || "")].filter(Boolean).join(" · ")}</div></td>
       <td>${esc(r.name)}<div class="muted" style="font-size:12px">${r.items.length} dòng · ${c.count} SP</div></td>
       <td>${esc(fmtDay(r.quoteDate))}</td>
       <td>${r.validUntil ? `${esc(fmtDay(r.validUntil))}${expired ? ' <span class="chip off">Hết hạn</span>' : ""}` : '<span class="muted">—</span>'}</td>
       <td class="r"><b>${money(c.total)}</b>${c.missing ? '<div><span class="chip bad">Tạm tính</span></div>' : ""}</td>
-      <td><div class="btn-row" style="justify-content:flex-end;gap:4px"><button class="btn sm primary" data-act="open" data-id="${r.id}">Mở</button><button class="btn sm" data-act="pdf" data-id="${r.id}">PDF</button><button class="btn sm" data-act="png" data-id="${r.id}">PNG</button><button class="btn sm" data-act="dup" data-id="${r.id}">Nhân bản</button><button class="btn sm ghost danger" data-act="del" data-id="${r.id}">Xóa</button></div></td></tr>`; }).join("")}
+      <td><div class="btn-row" style="justify-content:flex-end;gap:4px"><button class="btn sm primary" data-act="open" data-id="${r.id}">Mở</button><button class="btn sm m-only" data-act="pdf-send" data-id="${r.id}">${ICON.share} Gửi PDF</button><button class="btn sm d-only" data-act="pdf" data-id="${r.id}">PDF</button><button class="btn sm d-only" data-act="png" data-id="${r.id}">PNG</button><button class="btn sm d-only" data-act="dup" data-id="${r.id}">Nhân bản</button><button class="btn sm ghost danger d-only" data-act="del" data-id="${r.id}">Xóa</button><button class="btn sm m-only" data-act="rec-more" data-id="${r.id}" aria-label="Thao tác khác: báo giá ${esc(r.quoteCode)}">${ICON.more}</button></div></td></tr>`; }).join("")}
     </tbody></table></div>` : `<div class="panel empty">${q ? "Không có báo giá khớp tìm kiếm." : `Chưa có báo giá nào. Mở một mẫu và bấm <b>Tạo báo giá</b>, hoặc soạn bộ mới rồi bấm <b>Lưu báo giá</b>.`}</div>`}`;
   $("#q-q").oninput = debounce(e => { S.quoteQ = e.target.value; renderQuotes(); const i = $("#q-q"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250);
   el.onclick = onListClick;

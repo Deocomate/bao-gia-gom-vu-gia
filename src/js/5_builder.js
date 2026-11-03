@@ -38,8 +38,8 @@ function renderBuilder() {
     ${S.catHidden ? "" : `<aside class="catalog" id="catalog" aria-label="Danh mục sản phẩm"></aside>`}
     <div class="sheet" id="sheet"></div>
   </div>
-  <div class="mbar"><div class="t"><small id="mb-sub">Tạm tính</small><b id="mb-total" class="num">0 đ</b></div>
-    <button class="btn" data-act="cat-open">${ICON.plus} Thêm SP</button><button class="btn primary" data-act="save-any">Lưu</button></div>`;
+  <div class="mbar"><button type="button" class="t" data-act="to-totals" aria-label="Xem phần tổng tiền"><small id="mb-sub">Tạm tính</small><b id="mb-total" class="num">0 đ</b></button>
+    <button class="btn" data-act="cat-open">${ICON.plus} Thêm SP</button><button class="btn primary" data-act="save-any">Lưu</button><button class="btn mb-more" data-act="b-more" aria-label="Thao tác khác">${ICON.more}</button></div>`;
   el.onclick = onBuilderClick;
   el.oninput = onBuilderInput;
   el.onchange = onBuilderChange;
@@ -74,7 +74,8 @@ function renderCatalog() {
       ${groups.length > 8
         ? `<select class="inp" id="cat-group" aria-label="Nhóm sản phẩm"><option value="">Tất cả nhóm (${groups.length})</option>${groups.map(g => `<option ${S.cat.group === g ? "selected" : ""}>${esc(g)}</option>`).join("")}</select>`
         : `<div class="cat-groups"><button class="gchip" data-cg="" aria-pressed="${!S.cat.group}">Tất cả</button>${groups.map(g => `<button class="gchip" data-cg="${esc(g)}" aria-pressed="${S.cat.group === g}">${esc(g)}</button>`).join("")}</div>`}
-    </div><div class="cat-list" id="cat-list"></div>`;
+    </div><div class="cat-list" id="cat-list"></div>
+    <div class="cat-foot"><button class="btn primary" data-act="cat-close">Xong · <span id="cat-count"></span></button></div>`;
   $("#cat-q").oninput = debounce(e => { S.cat.q = e.target.value; renderCatList(); }, 200);
   const cgs = $("#cat-group"); if (cgs) cgs.onchange = () => { S.cat.group = cgs.value; renderCatList(); };
   const gs = $("#cat-glaze"); if (gs) gs.onchange = () => { S.cat.glaze = gs.value; S.cardSel.clear(); renderCatList(); };
@@ -112,11 +113,12 @@ function cardHTML(b) {
   const s = cardState(b);
   const v = b.variants.find(x => x.size === s.size && x.glaze === s.glaze);
   const url = b.image ? S.imgURL.get(b.image) : null;
+  const inSet = v && S.draft.items.find(l => l.code === v.code);
   const sizes = b.sizes.length > 1 || b.sizes[0] ? `<div class="opts" role="group" aria-label="Quy cách">${b.sizes.map(z => `<button class="opt" data-act="c-size" data-key="${esc(b.key)}" data-v="${esc(z)}" aria-pressed="${z === s.size}">${esc(z || "Tiêu chuẩn")}</button>`).join("")}</div>` : "";
   const glz = b.glazes.length > 1 || b.glazes[0] ? `<div class="opts" role="group" aria-label="Dòng men">${b.glazes.map(g => `<button class="opt ${/vàng/i.test(g) ? "gold" : ""}" data-act="c-glaze" data-key="${esc(b.key)}" data-v="${esc(g)}" aria-pressed="${g === s.glaze}" ${b.variants.some(x => x.size === s.size && x.glaze === g) ? "" : "disabled"}>${esc(g || "—")}</button>`).join("")}</div>` : "";
   return `<div class="pcard" data-key="${esc(b.key)}">
     <div class="pimg" data-pimg="${esc(b.key)}" data-act="c-add" data-key="${esc(b.key)}" title="Bấm để thêm vào bộ" style="cursor:pointer">${url ? `<img src="${url}" alt="">` : ICON.vase}</div>
-    <div style="min-width:0"><h4 data-act="c-add" data-key="${esc(b.key)}" title="Bấm để thêm vào bộ" style="cursor:pointer">${esc(b.name)}</h4><div class="meta">${esc([b.group, b.pattern && "Họa tiết " + b.pattern.toLowerCase()].filter(Boolean).join(" · "))}</div>${sizes}${glz}</div>
+    <div style="min-width:0"><h4 data-act="c-add" data-key="${esc(b.key)}" title="Bấm để thêm vào bộ" style="cursor:pointer">${esc(b.name)}</h4><div class="meta">${esc([b.group, b.pattern && "Họa tiết " + b.pattern.toLowerCase()].filter(Boolean).join(" · "))}${inSet ? ` <span class="chip lam">Đã có ×${inSet.qty}</span>` : ""}</div>${sizes}${glz}</div>
     <div class="add">
       ${v ? (v.price == null ? `<span class="price na">Chưa có giá</span>` : `<span><span class="price">${money(v.price)}</span> <span class="muted">/ ${esc(v.unit)}</span></span>`) : `<span class="price na">Không có biến thể này</span>`}
       <span class="btn-row" style="gap:6px"><span class="stepper"><input aria-label="Số lượng thêm" data-cqty="${esc(b.key)}" value="${s.qty}" inputmode="numeric"></span>
@@ -129,6 +131,7 @@ function addLine(p, qty = 1) {
   if (ex) ex.qty += qty;
   else d.items.push({ lid: uid("l"), code: p.code, name: p.name, pattern: p.pattern || "", size: p.size || "", glaze: p.glaze || "", unit: p.unit, price: p.price ?? null, qty });
   renderItems(); touched();
+  try { navigator.vibrate?.(12); } catch { }
   const code = p.code;
   requestAnimationFrame(() => {
     const ln = S.draft.items.find(l => l.code === code), tr = ln && $(`tr[data-lid="${ln.lid}"]`);
@@ -154,7 +157,7 @@ function renderSheet() {
   </div>
   ${isQ ? `<div class="cust">
     <label class="field w2"><span>Khách hàng</span><input class="inp" id="c-name" value="${esc(d.customer.name)}" placeholder="Tên khách hàng"></label>
-    <label class="field"><span>Số điện thoại</span><input class="inp" id="c-phone" value="${esc(d.customer.phone)}" inputmode="tel"></label>
+    <label class="field"><span>Số điện thoại</span><input class="inp" id="c-phone" type="tel" value="${esc(d.customer.phone)}" inputmode="tel"></label>
     <label class="field w2"><span>Địa chỉ</span><input class="inp" id="c-addr" value="${esc(d.customer.address)}"></label>
     <label class="field"><span>Mã báo giá</span><input class="inp" id="c-code" value="${esc(d.quoteCode)}" placeholder="Tự tạo khi lưu"></label>
     <label class="field w2"><span>Ngày báo giá</span><input class="inp" type="date" id="c-date" value="${esc(d.quoteDate)}"></label>
@@ -231,7 +234,8 @@ function renderItems() {
     <td class="r" data-amt>${l.price == null ? "—" : fmt(l.price * l.qty)}</td>
     <td><div class="row-acts">
       <button class="ibtn" data-act="up" title="Lên" ${i === 0 ? "disabled" : ""}>${ICON.up}</button><button class="ibtn" data-act="down" title="Xuống" ${i === d.items.length - 1 ? "disabled" : ""}>${ICON.down}</button>
-      <button class="ibtn" data-act="swap" title="Thay sản phẩm">${ICON.swap}</button><button class="ibtn del" data-act="del" title="Xóa dòng">${ICON.x}</button></div></td></tr>`).join("");
+      <button class="ibtn" data-act="swap" title="Thay sản phẩm">${ICON.swap}</button><button class="ibtn del" data-act="del" title="Xóa dòng">${ICON.x}</button>
+      <button class="ibtn row-more" data-act="row-more" aria-label="Thao tác dòng ${i + 1}">${ICON.more}</button></div></td></tr>`).join("");
   $("#items-empty").innerHTML = d.items.length ? "" : `<div class="items-empty">Chưa có vật phẩm. Chọn sản phẩm ở danh mục ${S.catHidden ? '(<button class="btn sm" data-act="cat-show">Hiện danh mục</button>)' : "bên trái"} rồi bấm “Thêm vào bộ”${[...S.records.values()].some(r => r.kind === "template") ? `, hoặc <button class="btn sm" data-view="templates" data-go="1">mở một mẫu có sẵn</button>` : ""}.</div>`;
   renderTotals();
   const ph = $("#photo"); if (ph && S.draft.imageId) { const stale = S.draft.imageSig != null && S.draft.imageSig !== itemsSig(S.draft); if (stale !== !!$(".stale", ph)) renderPhoto(); }
@@ -248,10 +252,12 @@ function renderTotals() {
   set("t-prov", c.missing ? `Tạm tính — còn ${c.missing} sản phẩm chưa có giá` : "");
   set("mb-total", money(c.total));
   set("mb-sub", c.missing ? "Tạm tính — còn SP chưa có giá" : `Tổng thanh toán · ${c.lines} dòng`);
+  set("cat-count", `${c.lines} dòng · ${money(c.total)}`);
 }
 function renderBanners() {
   const box = $("#b-banners"); if (!box) return;
   const d = S.draft, diffs = priceDiffs(d), out = [];
+  if (installHintOn()) out.push(`<div class="banner info"><span class="grow">Cài <b>Gốm Vũ Gia</b> lên màn hình chính để mở nhanh như một ứng dụng.</span><button class="btn sm primary" data-act="install">Cài ứng dụng</button><button class="btn sm ghost" data-act="install-hide">Để sau</button></div>`);
   if (diffs.length) out.push(`<div class="banner info"><span class="grow"><b>Giá sửa tay:</b> ${diffs.length} dòng trong bộ này dùng đơn giá sửa tay, khác bảng giá hiện tại. Các dòng khác tự theo bảng giá.</span><button class="btn sm primary" data-act="upd-prices">Dùng lại giá bảng giá</button></div>`);
   box.innerHTML = out.join("");
 }
@@ -335,24 +341,20 @@ async function builderClick(e) {
       break;
     }
     case "inc": setQty(l, l.qty + 1, tr); break;
-    case "dec": if (l.qty > 1) setQty(l, l.qty - 1, tr); else toast("Số lượng tối thiểu là 1. Dùng nút ✕ để xóa dòng.", "ok", 2200); break;
-    case "up": case "down": {
-      const i = d.items.indexOf(l), j = a === "up" ? i - 1 : i + 1;
-      if (j < 0 || j >= d.items.length) break;
-      [d.items[i], d.items[j]] = [d.items[j], d.items[i]]; renderItems(); touched();
-      setTimeout(() => { const btn = $(`tr[data-lid="${l.lid}"] [data-act="${a}"]`); btn && !btn.disabled && btn.focus(); }, 0); break;
-    }
-    case "del": d.items = d.items.filter(x => x !== l); renderItems(); renderBanners(); touched(); toast(`Đã xóa: ${lineTitle(l)}`, "ok", 1800); break;
-    case "swap": openReplace(l); break;
+    case "dec": if (l.qty > 1) setQty(l, l.qty - 1, tr); else toast("Số lượng tối thiểu là 1. Muốn bỏ sản phẩm thì dùng Xóa dòng.", "ok", 2200); break;
+    case "up": case "down": case "del": case "swap": case "lp-reset": case "lp-save": lineAction(a, l); break;
+    case "row-more": lineMenu(l); break;
+    case "b-more": builderMenu(); break;
+    case "to-totals": $(".totals")?.scrollIntoView({ block: "start", behavior: "smooth" }); break;
+    case "install": installApp(); break;
+    case "install-hide": hideInstallHint(); break;
     case "zoom": { const u = await imageURL(d.imageId); if (u) { const lb = document.createElement("div"); lb.className = "lightbox"; lb.innerHTML = `<img src="${u}" alt="Ảnh ban thờ">`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); } break; }
     case "ph-change": pickFile("image/*", f => setPhoto(f)); break;
     case "ph-remove": d.imageId = null; d.imageSig = null; renderPhoto(); touched(); break;
     case "ph-ok": d.imageSig = itemsSig(d); renderPhoto(); touched(); break;
     case "upd-prices": openPriceUpdate(); break;
-    case "lp-reset": delete l.manual; syncLinePrices({ items: [l] }); renderItems(); renderTotals(); renderBanners(); touched(); break;
-    case "lp-save": saveLinePriceToList(l); break;
     case "compose": openComposer(); break;
-    case "to-quote": d.kind = "quote"; if (!d.quoteDate) d.quoteDate = todayISO(); renderBuilder(); touched(); setTimeout(() => $("#c-name")?.focus(), 0); break;
+    case "to-quote": toQuote(); break;
     case "cat-hide": S.catHidden = true; renderBuilder(); break;
     case "cat-show": S.catHidden = false; renderBuilder(); break;
     case "cat-open": if (S.catHidden) { S.catHidden = false; renderBuilder(); } $("#catalog")?.classList.add("open"); break;
@@ -367,6 +369,70 @@ async function builderClick(e) {
     case "png": exportPNG(); break;
     case "print": printQuote(); break;
   }
+}
+/* Lập báo giá từ bộ đang soạn; nếu đang mở một mẫu đã lưu thì thành báo giá mới, mẫu gốc giữ nguyên */
+function toQuote() {
+  const d = S.draft;
+  if (d.id && d.kind === "template") {
+    Object.assign(d, { sourceTemplateId: d.id, id: null, quoteCode: "", quoteDate: todayISO(), validUntil: "", createdAt: null, updatedAt: null });
+    d.items.forEach(l => l.lid = uid("l")); S.draftBase = "";
+  }
+  d.kind = "quote"; if (!d.quoteDate) d.quoteDate = todayISO(); renderBuilder(); touched();
+  setTimeout(() => { const c = $("#c-name"); if (c) { c.scrollIntoView({ block: "center" }); c.focus(); } }, 0);
+}
+/* Thao tác trên một dòng vật phẩm (nút trên máy tính hoặc menu ⋯ trên điện thoại) */
+function lineAction(a, l) {
+  const d = S.draft;
+  switch (a) {
+    case "up": case "down": {
+      const i = d.items.indexOf(l), j = a === "up" ? i - 1 : i + 1;
+      if (j < 0 || j >= d.items.length) break;
+      [d.items[i], d.items[j]] = [d.items[j], d.items[i]]; renderItems(); touched();
+      setTimeout(() => { const btn = $(`tr[data-lid="${l.lid}"] [data-act="${a}"]`); btn && !btn.disabled && btn.offsetParent && btn.focus(); }, 0); break;
+    }
+    case "del": {
+      const i = d.items.indexOf(l);
+      d.items = d.items.filter(x => x !== l); renderItems(); renderBanners(); touched();
+      toast(`Đã xóa: ${lineTitle(l)}`, "ok", 5000, { text: "Hoàn tác", run: () => {
+        if (S.draft !== d || d.items.includes(l)) return;
+        const same = d.items.find(x => x.code === l.code);
+        if (same) same.qty += l.qty; else d.items.splice(Math.min(i, d.items.length), 0, l);
+        renderItems(); renderBanners(); touched(); renderCatList();
+      } });
+      renderCatList(); break;
+    }
+    case "swap": openReplace(l); break;
+    case "lp-reset": delete l.manual; syncLinePrices({ items: [l] }); renderItems(); renderTotals(); renderBanners(); touched(); break;
+    case "lp-save": saveLinePriceToList(l); break;
+  }
+}
+function lineMenu(l) {
+  const d = S.draft, i = d.items.indexOf(l), p = S.products.get(l.code), manual = p && (p.price ?? null) !== (l.price ?? null);
+  const go = a => () => lineAction(a, l);
+  actionSheet(`${i + 1}. ${lineTitle(l)}`, [
+    i > 0 && { text: "Đưa lên trên", icon: ICON.up, run: go("up") },
+    i < d.items.length - 1 && { text: "Đưa xuống dưới", icon: ICON.down, run: go("down") },
+    { text: "Thay sản phẩm khác", sub: "Đổi quy cách, dòng men hoặc sản phẩm", icon: ICON.swap, run: go("swap") },
+    manual && { text: "Dùng lại giá bảng giá", sub: "Bảng giá: " + (p.price == null ? "chưa có" : money(p.price)), icon: ICON.tag, run: go("lp-reset") },
+    manual && l.price != null && { text: "Lưu đơn giá này vào bảng giá", icon: ICON.save, run: go("lp-save") },
+    { text: "Xóa dòng", icon: ICON.x, cls: "danger", run: go("del") }
+  ]);
+}
+/* Các thao tác của trang Tạo bộ gom vào một bảng (nút ⋯ ở thanh dưới, điện thoại) */
+function builderMenu() {
+  const d = S.draft, isQ = d.kind === "quote";
+  actionSheet(modeTitle(d), [
+    { text: isQ ? "Gửi báo giá (PDF)" : "Gửi PDF", sub: "Zalo, Tin nhắn, Mail hoặc lưu vào máy", icon: ICON.share, cls: "primary", run: () => exportPDF(d, { share: true }) },
+    { text: "Gửi ảnh báo giá (PNG)", sub: "Khách xem nhanh ngay trong khung chat", icon: ICON.img, run: () => exportPNG(d, { share: true }) },
+    { text: "Xem trước bản A4", icon: ICON.doc, run: () => openPreview(d) },
+    !isQ && { text: "Lập báo giá cho khách", sub: "Thêm tên, số điện thoại khách hàng", icon: ICON.plus, run: toQuote },
+    { text: "Lưu thành mẫu", icon: ICON.grid, run: saveTemplate },
+    { text: "Lưu báo giá", icon: ICON.save, run: saveQuote },
+    { text: "Nhân bản bộ này", icon: ICON.addsq, run: duplicateDraft },
+    { text: "Bộ mới", sub: "Soạn bộ ban thờ khác từ đầu", icon: ICON.plus, run: newSet },
+    { text: "Tải PDF về máy", icon: ICON.dl, run: () => exportPDF(d) },
+    { text: "In báo giá", icon: ICON.doc, run: () => printQuote(d) }
+  ]);
 }
 function openReplace(line) {
   const p0 = S.products.get(line.code);
@@ -511,7 +577,7 @@ function askCustomer(d) {
     modal({ title: "Lưu báo giá cho khách", size: "mid", onClose: () => { if (!done) res(null); },
       body: `<div class="mapgrid">
         <label class="field"><span>Tên khách hàng *</span><input class="inp" id="q-name" value="${esc(c.name)}"></label>
-        <label class="field"><span>Số điện thoại</span><input class="inp" id="q-phone" value="${esc(c.phone)}" inputmode="tel"></label>
+        <label class="field"><span>Số điện thoại</span><input class="inp" id="q-phone" type="tel" value="${esc(c.phone)}" inputmode="tel"></label>
         <label class="field" style="grid-column:1/-1"><span>Địa chỉ</span><input class="inp" id="q-addr" value="${esc(c.address)}"></label>
         <label class="field"><span>Ngày báo giá</span><input class="inp" type="date" id="q-date" value="${esc(d.quoteDate || todayISO())}"></label>
         <label class="field"><span>Hiệu lực đến (nếu có)</span><input class="inp" type="date" id="q-valid" value="${esc(d.validUntil)}"></label>

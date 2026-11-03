@@ -26,10 +26,12 @@ data/
   pdf_data.json                  236 biến thể – bảng giá gốc, dùng khi xuất file dữ liệu và tự cập nhật giá khi deploy
   demo_altar.jpg                 Ảnh ban thờ của mẫu “Bộ Phúc Liên Hoa – vẽ vàng” trong file dữ liệu
   logo_*.png                     Logo (logo_brown.png cũng là favicon)
+  icon-*.png                     Icon vuông khi cài ứng dụng lên màn hình chính (tạo bằng tools/make_icons.py)
 tools/
   pdf_data.py        Dữ liệu chép tay từ PDF
   make_xlsx.py       Tạo lại file Excel mẫu + pdf_data.json
-  build.py           Gộp src + data thành dist/ (index.html, login.html, favicon.png)
+  make_icons.py      Tạo lại data/icon-*.png từ logo (cần Pillow)
+  build.py           Gộp src + data thành dist/ (index.html, login.html, favicon.png, manifest + icon cài ứng dụng)
   export_data.py     Xuất file dữ liệu chính thức (.json) để nạp lên production
 tests/               Kịch bản kiểm thử tự động (Python Playwright), xem mục Kiểm thử
 docs/
@@ -110,6 +112,18 @@ Nhãn góc phải thanh trên cùng cho biết lần xuất sao lưu gần nhấ
 - **Sửa giá cho riêng một bộ / báo giá**: ở trang Tạo bộ ban thờ, gõ thẳng vào cột Đơn giá của từng dòng. Dòng đó thành “giá sửa tay”, giữ nguyên khi bảng giá đổi, và hiện nhãn kèm giá bảng giá cùng hai nút: **Dùng giá bảng** (bỏ giá sửa tay) và **Lưu vào bảng giá** (ghi giá này vào bảng giá để mọi bộ dùng chung). Gõ lại đúng giá bảng giá thì dòng tự theo bảng giá như cũ.
 - **Điều chỉnh giá hàng loạt**: tăng/giảm theo % hoặc số tiền, hay đặt cùng một giá, cho các dòng đang hiện theo bộ lọc, có làm tròn; xem trước rồi mới lưu.
 
+## Dùng trên điện thoại
+Trên màn hình hẹp (≤ 820px), các mục chuyển xuống **thanh dưới** (Tạo bộ · Báo giá · Mẫu · Bảng giá · Thêm). Mục **Thêm** chứa Sao lưu, Cài ứng dụng và Đăng xuất.
+- **Tạo bộ**: thanh dưới có tổng tiền, **Thêm SP** (mở danh mục toàn màn hình, thêm nhiều sản phẩm liền, bấm **Xong** để quay lại), **Lưu** và nút **⋯** gồm mọi thao tác còn lại (gửi PDF/ảnh, xem trước, lập báo giá, lưu mẫu, nhân bản, bộ mới, tải PDF, in).
+- Mỗi dòng vật phẩm có nút **⋯** để đổi thứ tự, thay sản phẩm, về giá bảng giá hoặc xóa. Xóa xong có nút **Hoàn tác** trong 5 giây.
+- **Gửi báo giá**: **Gửi PDF** / **Gửi ảnh** mở bảng chia sẻ của điện thoại (Zalo, Tin nhắn, Mail, Lưu vào Tệp). Trình duyệt không chia sẻ được file thì tải về như trên máy tính.
+- **Bảng giá**: bộ lọc gom sau nút **Lọc**; Nhập/Xuất Excel, điều chỉnh hàng loạt nằm trong nút **⋯**.
+
+### Cài ứng dụng lên màn hình chính
+- **iPhone/iPad (Safari)**: bấm **Thêm → Cài ứng dụng** để xem hướng dẫn, hoặc làm luôn: nút **Chia sẻ** → **Thêm vào MH chính** → **Thêm**. Mở ứng dụng từ biểu tượng mới rồi **đăng nhập lại một lần** (ứng dụng trên màn hình chính không dùng chung đăng nhập với Safari).
+- **Android / Chrome / Edge**: bấm **Cài ứng dụng**, trình duyệt hiện hộp cài đặt.
+Ứng dụng mở toàn màn hình, vẫn cần mạng như bản web. Máy chủ mở công khai `manifest.webmanifest` và `icon-*.png` (không chứa dữ liệu) để trình duyệt cài được trước khi đăng nhập.
+
 ## Xuất PDF gộp nhiều mẫu
 Ở trang **Mẫu ban thờ**, tích ô ở góc ảnh từng mẫu (hoặc **Chọn tất cả**, áp dụng cho các mẫu đang lọc) rồi bấm **Xuất PDF gộp**.
 File PDF A4 dọc có báo giá của từng mẫu, mỗi mẫu bắt đầu ở trang mới, xếp theo thứ tự tích chọn. Mẫu nào còn sản phẩm chưa có giá thì không xuất được và được nêu tên.
@@ -125,6 +139,7 @@ python tests/run_all.py          # hoặc: python tests/run_all.py t1 t7
 ```
 Các test chạy theo thứ tự và dùng chung dữ liệu máy chủ (t1 đăng nhập, nạp file dữ liệu rồi nhập bảng giá cho các test sau).
 Test tự chạy `server/app.py` ở cổng `8765` (đổi bằng biến `GVG_TEST_PORT`) với tài khoản admin riêng cho test, dữ liệu trong `tests/.output/server/`; kết quả, ảnh chụp nằm trong `tests/.output/`.
+`t6_mobile` giả lập iPhone 390×844 (thanh dưới, vùng chạm ≥ 40px, ô nhập ≥ 16px, tạo bộ, gửi PDF/ảnh, lọc, thẻ báo giá); `t19_pwa` kiểm tra manifest, icon và nút cài ứng dụng.
 Một số test cần file mẫu chưa có trong repo, xem [tests/fixtures/README.md](tests/fixtures/README.md).
 Muốn chạy không cần Internet: đặt `GVG_LIBS` trỏ tới thư mục `node_modules` có `xlsx`, `html2canvas`, `jspdf`.
 

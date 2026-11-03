@@ -19,6 +19,9 @@ from urllib.parse import unquote, urlsplit
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STORES = {"kv": "k", "products": "code", "records": "id", "images": "id"}
 COOKIE = "gvg_session"
+# File tĩnh không cần đăng nhập: biểu tượng và manifest để cài ứng dụng lên màn hình chính (không chứa dữ liệu)
+PUBLIC_FILES = {"favicon.png": "image/png", "manifest.webmanifest": "application/manifest+json",
+                "icon-180.png": "image/png", "icon-192.png": "image/png", "icon-512.png": "image/png", "icon-maskable-512.png": "image/png"}
 SESSION_SECONDS = 30 * 86400
 MAX_BODY = 200 * 1024 * 1024
 MAX_FAILS, FAIL_WINDOW = 5, 15 * 60
@@ -341,8 +344,8 @@ class Handler(BaseHTTPRequestHandler):
         path = unquote(urlsplit(self.path).path)
         if path == "/healthz":
             return self.send(200, "ok\n")
-        if path == "/favicon.png":
-            return self.file("favicon.png", "image/png", cache="public, max-age=604800")
+        if path[1:] in PUBLIC_FILES:
+            return self.file(path[1:], PUBLIC_FILES[path[1:]], cache="public, max-age=604800")
         if path == "/login":
             return self.redirect("/") if self.authed() else self.file("login.html", "text/html; charset=utf-8")
         if path.startswith("/api/"):

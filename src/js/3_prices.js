@@ -32,10 +32,11 @@ function renderPrices() {
     <p>Sửa giá ngay ở cột <b>Đơn giá</b> (Enter để xuống dòng dưới) rồi bấm <b>Lưu thay đổi</b>. Bấm vào tên sản phẩm để sửa thông tin, ảnh hoặc xóa. Báo giá đã lưu không tự đổi theo bảng giá.</p></div>
     <div class="btn-row">
       <button class="btn primary" data-act="add">${ICON.plus} Thêm sản phẩm</button>
-      <button class="btn" data-act="bulk" ${hasAny ? "" : "disabled"}>Điều chỉnh giá hàng loạt</button>
-      <button class="btn" data-act="import">${ICON.upload.replace('width="30" height="30"', 'width="16" height="16"')} Nhập Excel</button>
-      <button class="btn" data-act="export" ${hasAny ? "" : "disabled"}>Xuất Excel</button>
-      <button class="btn ghost" data-act="template">File Excel mẫu</button>
+      <button class="btn d-only" data-act="bulk" ${hasAny ? "" : "disabled"}>Điều chỉnh giá hàng loạt</button>
+      <button class="btn d-only" data-act="import">${ICON.upload.replace('width="30" height="30"', 'width="16" height="16"')} Nhập Excel</button>
+      <button class="btn d-only" data-act="export" ${hasAny ? "" : "disabled"}>Xuất Excel</button>
+      <button class="btn ghost d-only" data-act="template">File Excel mẫu</button>
+      <button class="btn m-only" data-act="pe-menu" aria-label="Thao tác khác với bảng giá">${ICON.more}</button>
     </div>
   </div>
   <div id="pe-body"></div>`;
@@ -73,13 +74,15 @@ function renderPeBody() {
   const sizes = [...new Set(rowsAll.filter(r => !f.group || r.group === f.group).map(r => r.size).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi", { numeric: true }));
   const list = peFiltered();
   const shown = list.slice(0, S.pe.limit);
+  const nFilt = [f.group, f.glaze, f.size, f.status !== "active"].filter(Boolean).length;
   const nActive = rowsAll.filter(r => r.active !== false).length, nNoPrice = rowsAll.filter(r => r.active !== false && r.price == null).length, nOff = rowsAll.length - nActive;
   const gCount = new Map(); list.forEach(r => gCount.set(r.group || "", (gCount.get(r.group || "") || 0) + 1));
   let lastG = null;
   const body = shown.map(r => { const g = r.group || ""; const head = g !== lastG ? `<tr class="grp"><td colspan="9">${esc(g || "Chưa xếp nhóm")} <span>${gCount.get(g)}</span></td></tr>` : ""; lastG = g; return head + peRowHTML(r); }).join("");
   box.innerHTML = `
-  <div class="toolbar">
-    <input class="inp search" id="pe-q" type="search" placeholder="Tìm theo tên, mã, ghi chú…" value="${esc(f.q)}" aria-label="Tìm kiếm">
+  <div class="toolbar${S.peFiltersOpen ? " fopen" : ""}">
+    <input class="inp search" id="pe-q" type="search" enterkeyhint="search" placeholder="Tìm theo tên, mã, ghi chú…" value="${esc(f.q)}" aria-label="Tìm kiếm">
+    <button class="btn m-only" data-act="pe-filters" aria-expanded="${!!S.peFiltersOpen}">${ICON.filter} Lọc${nFilt ? ` (${nFilt})` : ""}</button>
     <select class="inp" id="pe-group" aria-label="Lọc nhóm"><option value="">Tất cả nhóm</option>${opt(groups, f.group)}</select>
     <select class="inp" id="pe-glaze" aria-label="Lọc dòng men"><option value="">Mọi dòng men</option>${opt(glazes, f.glaze)}</select>
     <select class="inp" id="pe-size" aria-label="Lọc kích thước"><option value="">Mọi kích thước</option>${opt(sizes, f.size)}</select>
@@ -164,7 +167,7 @@ async function onPricesClick(e) {
   const b = e.target.closest("[data-act]");
   if (!b) return;
   const a = b.dataset.act, k = b.dataset.k;
-  if (a === "import") { if (S.pe.dirty.size) { toast("Hãy lưu hoặc hủy các thay đổi đang sửa trước khi nhập file mới", "bad"); return; } openImport(); }
+  if (a === "import") startImport();
   else if (a === "template") downloadTemplate();
   else if (a === "export") exportPriceExcel();
   else if (a === "restore") pickFile(".json,application/json", f => restoreBackup(f));
@@ -172,6 +175,16 @@ async function onPricesClick(e) {
   else if (a === "clear-filter") { Object.assign(S.peFilter, { q: "", group: "", glaze: "", size: "", status: "active" }); S.pe.limit = 300; renderPeBody(); }
   else if (a === "show-noprice") { Object.assign(S.peFilter, { q: "", group: "", glaze: "", size: "", status: "noprice" }); S.pe.limit = 300; renderPeBody(); }
   else if (a === "add") openProductForm(null);
+  else if (a === "pe-filters") { S.peFiltersOpen = !S.peFiltersOpen; $(".toolbar")?.classList.toggle("fopen", S.peFiltersOpen); b.setAttribute("aria-expanded", String(S.peFiltersOpen)); }
+  else if (a === "pe-menu") {
+    const hasAny = S.pe.order.length > 0;
+    actionSheet("Bảng giá", [
+      hasAny && { text: "Điều chỉnh giá hàng loạt", sub: "Tăng/giảm theo % hoặc số tiền", icon: ICON.tag, run: openBulkPrice },
+      { text: "Nhập Excel", sub: "Cập nhật bảng giá từ file .xlsx, .csv", icon: ICON.doc, run: startImport },
+      hasAny && { text: "Xuất Excel", icon: ICON.dl, run: exportPriceExcel },
+      { text: "Tải file Excel mẫu", icon: ICON.dl, run: downloadTemplate }
+    ]);
+  }
   else if (a === "edit") openProductForm(k);
   else if (a === "bulk") openBulkPrice();
   else if (a === "toggle") { const r = S.pe.rows.get(k); r.active = r.active === false; S.pe.dirty.add(k); const tr = b.closest("tr"); tr.outerHTML = peRowHTML(r); renderSavebar(); }
@@ -183,6 +196,10 @@ async function onPricesClick(e) {
   }
   else if (a === "discard") { if (await confirmBox({ title: "Hủy thay đổi?", html: "<p>Các chỉnh sửa chưa lưu trong bảng giá sẽ bị bỏ.</p>", okText: "Hủy thay đổi", danger: true, cancelText: "Quay lại" })) { S.pe = null; renderPrices(); toast("Đã hủy các thay đổi"); } }
   else if (a === "save") savePriceEdits();
+}
+function startImport() {
+  if (S.pe.dirty.size) { toast("Hãy lưu hoặc hủy các thay đổi đang sửa trước khi nhập file mới", "bad"); return; }
+  openImport();
 }
 function pickFile(accept, cb) {
   const inp = $("#file-any");

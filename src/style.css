@@ -363,6 +363,8 @@ table.prev .rn{color:var(--muted);text-align:right}
 .toast{background:var(--ink);color:var(--paper);border-radius:10px;padding:11px 14px;box-shadow:var(--shadow);font-size:13.5px;display:flex;gap:10px;align-items:flex-start}
 .toast.bad{background:var(--danger);color:#fff}
 .toast.ok::before{content:"✓";font-weight:800}
+.toast .grow{flex:1;min-width:0}
+.toast button{border:0;background:none;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:4px 6px;margin:-4px -6px -4px 0;white-space:nowrap;min-height:32px}
 .busy{position:fixed;inset:0;z-index:300;background:rgba(15,19,27,.4);display:grid;place-items:center}
 .busy div{background:var(--surface);border-radius:12px;padding:18px 22px;display:flex;gap:12px;align-items:center;box-shadow:var(--shadow)}
 .spin{width:20px;height:20px;border:3px solid var(--lam-soft);border-top-color:var(--lam);border-radius:50%;animation:sp 0.8s linear infinite}
@@ -386,6 +388,52 @@ table.prev .rn{color:var(--muted);text-align:right}
   .catalog.open{transform:none;box-shadow:0 0 0 100vmax rgba(15,19,27,.45)}
   .cat-close{display:inline-flex!important}
 }
+/* Phần chỉ dùng trên điện thoại, ẩn trên máy tính */
+.appbar-title,.bnav,.row-more,.cat-foot{display:none}
+.m-only{display:none!important}
+
+/* Bảng thao tác (actionSheet) */
+.modal.sheet{width:min(440px,100%)}
+.acts{display:flex;flex-direction:column;gap:2px;margin:-6px -8px}
+.act{display:flex;align-items:center;gap:14px;border:0;background:none;text-align:left;padding:10px;border-radius:10px;cursor:pointer;min-height:52px;color:var(--ink);font-size:15px;-webkit-tap-highlight-color:transparent}
+.act:hover,.act:active{background:var(--sunk)}
+.act .icon{width:22px;height:22px;color:var(--lam)}
+.act>span{display:flex;flex-direction:column;min-width:0}
+.act small{color:var(--muted);font-size:12.5px}
+.act.primary{background:var(--lam-soft);color:var(--lam-ink);font-weight:600}
+.act.danger,.act.danger .icon{color:var(--danger)}
+.act:disabled{opacity:.45;cursor:not-allowed}
+/* Hướng dẫn cài ứng dụng */
+.install-btn{flex:none}
+.iapp{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.iapp img{border-radius:13px;flex:none}
+.isteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.isteps li{display:flex;gap:10px;align-items:flex-start;line-height:1.55}
+.isteps li>b{flex:none;width:26px;height:26px;border-radius:50%;background:var(--lam);color:var(--on-lam);display:grid;place-items:center;font-size:13px}
+.ikey{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--line-strong);border-radius:7px;vertical-align:middle;color:#0A7AFF;background:var(--surface)}
+.ikey .icon{width:18px;height:18px}
+a.tel{color:var(--lam-ink);font-weight:600;text-decoration:none}
+
+/* Màn hình cảm ứng: vùng chạm tối thiểu ~44px */
+@media (pointer:coarse){
+  .btn{min-height:44px}
+  .btn.sm{min-height:40px;padding:6px 12px}
+  .inp,.trow .inp,table.items .cell-inp,table.grid .cell-inp,.title-inp{min-height:44px}
+  .ibtn{width:40px;height:40px}
+  .row-acts{grid-template-columns:repeat(2,40px)}
+  .stepper button{width:40px;height:40px;font-size:20px}
+  .stepper input{height:40px;width:46px}
+  .opt{min-height:40px;padding:6px 12px;font-size:13px}
+  .gchip{min-height:40px;padding:6px 14px}
+  .tab{min-height:44px}
+  .thumb{width:44px;height:44px}
+  .check input,.tcard .tc-sel input{width:22px;height:22px}
+  .tcard .tc-sel{width:44px;height:44px}
+  .menu-list button{min-height:44px}
+  button,a,input,select,textarea,label,summary{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .btn:active,.bn:active,.ibtn:active{transform:scale(.97)}
+}
+
 @media (max-width:820px){
   .sheet-body{grid-template-columns:minmax(0,1fr)}
   .totals{grid-template-columns:minmax(0,1fr)}
@@ -394,18 +442,108 @@ table.prev .rn{color:var(--muted);text-align:right}
   .cust{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cust .field.w2{grid-column:span 2}
   .empty-state{grid-template-columns:minmax(0,1fr)}
-  .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));gap:10px;align-items:center;box-shadow:0 -4px 18px rgba(0,0,0,.08)}
-  .mbar .t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}
-  .mbar .t small{color:var(--muted);font-size:11.5px}
-  .mbar .t b{font-size:17px;font-variant-numeric:tabular-nums}
-  .appbar-in{flex-wrap:wrap;gap:8px 14px;padding-block:8px}
-  .tabs{order:3;flex-basis:100%}
+  .d-only{display:none!important}
+  .m-only{display:inline-flex!important}
+  /* Ô nhập ≥16px để iPhone không tự phóng to khi chạm */
+  input,select,textarea,.inp,.cell-inp,.xs-btn,.xs-search input,.stepper input{font-size:16px}
+
+  /* Thanh trên gọn một hàng: logo + tên mục; các mục chuyển xuống thanh dưới */
+  .appbar-in{flex-wrap:nowrap;gap:10px;min-height:52px;padding-block:4px}
+  .brand small{display:none}
+  .logo{height:30px}
+  .appbar-title{display:block;flex:1;min-width:0;font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tabs,.who,#install-btn{display:none!important}
+  .store-chip{width:44px;height:44px;padding:0;justify-content:center;border:0;background:none}
+  .store-chip.warn{background:none}
+  .store-chip i{width:10px;height:10px}
   .store-chip span{display:none}
-  #user-name{display:none}
-  .view-head h1{font-size:26px}
-  .b-top .btn{min-height:34px;padding:6px 10px;font-size:13px}
+  .view-head h1{display:none}
+  .view-head p{font-size:13px;margin:0}
+  .view-head{margin-bottom:12px}
+  .view-head>.btn-row{width:100%}
+  .view-head>.btn-row>.inp{flex:1;width:auto!important;min-width:0}
+  main{padding-block:12px calc(150px + env(safe-area-inset-bottom,0px))}
+
+  .bnav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--surface);border-top:1px solid var(--line);padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  .bn{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:6px 0;color:var(--muted);font-size:11.5px;font-weight:500;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .bn .icon{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:99px;transition:background .15s}
+  .bn[aria-selected="true"]{color:var(--lam-ink);font-weight:700}
+  .bn[aria-selected="true"] .icon{background:var(--lam-soft)}
+
+  .toasts{left:12px;right:12px;max-width:none;bottom:calc(136px + env(safe-area-inset-bottom,0px))}
+  .toast{font-size:14.5px;align-items:center}
+  .savebar{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+
+  /* Hộp thoại trượt lên từ cạnh dưới */
+  .modal-back{align-items:flex-end;padding:env(safe-area-inset-top,0px) 0 0}
+  .modal,.modal.wide,.modal.mid,.modal.sheet{width:100%;border-radius:16px 16px 0 0;max-height:calc(100dvh - env(safe-area-inset-top,0px) - 16px)}
+  .modal-h{padding:12px 14px 12px 18px}
+  .modal-h .ibtn{width:44px;height:44px}
+  .modal-b:last-child{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .modal-f{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  .modal-f .btn{flex:1 1 auto}
+  .modal-f .grow{flex-basis:100%}
+
+  /* Tạo bộ: thao tác gom vào thanh dưới, phiếu gọn hơn */
+  .b-top{margin-bottom:8px}
+  .b-top .btn-row{display:none}
   .b-top .mode b{font-size:22px}
+  .sheet-brand{display:none}
+  .sheet-head,.sheet-body,.totals{padding:14px}
+  .cust{padding:12px 14px}
+  .title-inp{font-size:22px}
+  .photo-box:has(.drop){aspect-ratio:auto;height:150px}
   .grand .val{font-size:22px}
+  .mbar{display:flex;position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--surface);border-top:1px solid var(--line);padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));gap:8px;align-items:center;box-shadow:0 -4px 18px rgba(0,0,0,.08)}
+  .mbar .t{flex:1;min-width:0;min-height:44px;justify-content:center;display:flex;flex-direction:column;line-height:1.2;border:0;background:none;padding:0;text-align:left;cursor:pointer;color:inherit}
+  .mbar .t small{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mbar .t b{font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .mbar .btn{min-height:44px;padding:8px 12px}
+  .mbar .mb-more{width:44px;padding:0}
+  .catalog{width:100%}
+  .catalog.open{box-shadow:none}
+  .catalog [data-act="cat-hide"]{display:none}
+  .cat-foot{display:block;flex:none;padding:10px 12px;border-top:1px solid var(--line)}
+  .cat-foot .btn{width:100%;min-height:48px}
+  .pcard h4{font-size:15px}
+  .row-acts{display:block}
+  .row-acts .ibtn:not(.row-more){display:none}
+  .row-more{display:grid}
+
+  /* Mẫu ban thờ */
+  .tcard .tc-img{aspect-ratio:16/10}
+  .tcard .tc-acts .btn{flex:1 1 auto}
+  .tcard .tc-acts .m-only{flex:0 0 44px;padding:0}
+  .sel-bar{padding:8px 12px}
+  .sel-bar .grow{display:none}
+  .sel-bar .btn{margin-left:auto}
+  .sel-bar.on{position:sticky;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:20;box-shadow:var(--shadow);border-color:var(--lam)}
+
+  /* Báo giá khách hàng: mỗi báo giá một thẻ */
+  .tbl-wrap:has(table.qlist){border:0;background:none;overflow:visible}
+  table.qlist{min-width:0;display:block}
+  table.qlist thead{display:none}
+  table.qlist tbody{display:flex;flex-direction:column;gap:10px}
+  table.qlist tr{display:grid;grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"t c tot" "t k k" "t s s" "t d v" "a a a";gap:4px 10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+  table.qlist td{border:0;padding:0}
+  table.qlist td:nth-child(1){grid-area:t}
+  table.qlist td:nth-child(2){grid-area:c}
+  table.qlist td:nth-child(3){grid-area:k}
+  table.qlist td:nth-child(4){grid-area:s;font-size:13px}
+  table.qlist td:nth-child(5){grid-area:d;font-size:12.5px;color:var(--muted)}
+  table.qlist td:nth-child(6){grid-area:v;font-size:12.5px;color:var(--muted)}
+  table.qlist td:nth-child(5)::before{content:"Ngày "}
+  table.qlist td:nth-child(6)::before{content:"Hiệu lực "}
+  table.qlist td:nth-child(7){grid-area:tot}
+  table.qlist td:nth-child(8){grid-area:a;margin-top:6px}
+  table.qlist td:nth-child(8) .btn-row{justify-content:stretch!important;gap:8px!important}
+  table.qlist td:nth-child(8) .btn{flex:1 1 auto}
+  table.qlist td:nth-child(8) .m-only[data-act="rec-more"]{flex:0 0 44px;padding:0}
+
+  /* Bảng giá: bộ lọc gom sau nút “Lọc” */
+  .toolbar .search{min-width:0}
+  .toolbar:not(.fopen)>:not(.search):not([data-act="pe-filters"]){display:none!important}
+  .toolbar.fopen .xs-btn{flex:1 1 calc(50% - 4px)}
 }
 
 /* ===== Bản xuất: luôn nền sáng, màu cố định, không theo giao diện tối ===== */
