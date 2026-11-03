@@ -1,10 +1,11 @@
 from common import *
+from make_fixtures import ensure
+ensure("pdf_like.xlsx")
 XL = os.path.join(FIX, "pdf_like.xlsx")
-if not os.path.exists(XL):
-    raise SystemExit("BỎ QUA: thiếu file mẫu tests/fixtures/pdf_like.xlsx")
 with sync_playwright() as p:
-    ctx, page, errs = new_ctx(p, user_dir=os.path.join(OUT, "profile3"), fresh=True, w=1860, h=900)
+    ctx, page, errs = new_ctx(p, user_dir=os.path.join(OUT, "profile3"), fresh=True, seed=False, w=1860, h=900)
     page.goto(URL); page.wait_for_timeout(800)
+    page.click("#tab-prices"); page.wait_for_timeout(300)
     page.click("#view-prices [data-act=import] >> nth=0")
     page.set_input_files("#imp-file", XL); page.wait_for_selector("#imp-hdr")
     page.click("#imp-next"); page.click("#imp-next"); page.wait_for_selector("table.prev")
@@ -17,5 +18,5 @@ with sync_playwright() as p:
     print(page.eval_on_selector_all(".pcard", "els=>els.slice(0,3).map(e=>e.innerText.replace(/\\s+/g,' ')+' | disabled='+e.querySelector('[data-act=c-add]').disabled)"))
     page.locator(".pcard [data-act=c-add]").first.click(); page.wait_for_timeout(300)
     print("dòng:", page.evaluate("S.draft.items.length"), errs)
-    page.screenshot(path="shots/50_pdflike.png")
+    page.screenshot(path=f"{SHOT}/50_pdflike.png")
     ctx.close()

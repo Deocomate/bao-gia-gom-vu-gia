@@ -140,7 +140,7 @@ python tests/run_all.py          # hoặc: python tests/run_all.py t1 t7
 Các test chạy theo thứ tự và dùng chung dữ liệu máy chủ (t1 đăng nhập, nạp file dữ liệu rồi nhập bảng giá cho các test sau).
 Test tự chạy `server/app.py` ở cổng `8765` (đổi bằng biến `GVG_TEST_PORT`) với tài khoản admin riêng cho test, dữ liệu trong `tests/.output/server/`; kết quả, ảnh chụp nằm trong `tests/.output/`.
 `t6_mobile` giả lập iPhone 390×844 (thanh dưới, vùng chạm ≥ 40px, ô nhập ≥ 16px, tạo bộ, gửi PDF/ảnh, lọc, thẻ báo giá); `t19_pwa` kiểm tra manifest, icon và nút cài ứng dụng.
-Một số test cần file mẫu chưa có trong repo, xem [tests/fixtures/README.md](tests/fixtures/README.md).
+File mẫu cho test (CSV, .xls, bảng giá kiểu PDF, ảnh sản phẩm) được `tests/make_fixtures.py` tự tạo khi cần, xem [tests/fixtures/README.md](tests/fixtures/README.md).
 Muốn chạy không cần Internet: đặt `GVG_LIBS` trỏ tới thư mục `node_modules` có `xlsx`, `html2canvas`, `jspdf`.
 
 ## Thư viện dùng (tải từ cdnjs khi chạy)

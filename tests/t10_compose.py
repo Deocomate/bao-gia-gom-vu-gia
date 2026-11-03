@@ -1,8 +1,8 @@
 from common import *
 MAP = [("Bát hương rồng kĩ Ø20","bathuong20"),("Bát hương rồng kĩ Ø18","bathuong18"),("Đế sứ bát hương","de"),("Lộc bình","binh"),("Chóe","choe"),("Đèn","den"),("Bát cơm","bat_com"),("Mâm bồng","mam"),("Bộ ấm","bo_am"),("Ống hương","ong"),("Nậm","nam"),("Chân nến","nen"),("Kỉ ngai","ki")]
+from make_fixtures import ensure
+ensure("prod")
 PROD = os.path.join(FIX, "prod")
-if not os.path.isdir(PROD):
-    raise SystemExit("BỎ QUA: thiếu thư mục ảnh mẫu tests/fixtures/prod/")
 with sync_playwright() as p:
     ctx, page, errs = new_ctx(p, user_dir=os.path.join(OUT, "profile4"), fresh=True)
     page.goto(URL); page.wait_for_timeout(800)

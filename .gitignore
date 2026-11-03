@@ -5,8 +5,10 @@ dist/
 var/
 exports/
 
-# Kết quả chạy test
+# Kết quả chạy test, file mẫu test tự tạo (tests/make_fixtures.py)
 tests/.output/
+tests/fixtures/*
+!tests/fixtures/README.md
 
 # Python
 __pycache__/
