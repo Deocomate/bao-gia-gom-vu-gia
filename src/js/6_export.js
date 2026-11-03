@@ -4,10 +4,13 @@ function fileBase(d) {
   if (d.kind === "quote" && d.quoteCode) return `Bao_gia_${d.quoteCode}_${slug(d.customer.name)}`;
   return d.kind === "quote" && d.customer?.name ? `Bao_gia_${slug(d.customer.name)}_${todayISO()}` : `Bo_ban_tho_${slug(d.name)}_${todayISO()}`;
 }
-function xpParts(d) {
+/* noPrice: phiếu gửi xưởng chuẩn bị hàng – chỉ tên, quy cách, ĐVT, số lượng; không đơn giá, tiền, thông tin khách */
+/* Tên file phiếu gửi xưởng: không kèm tên khách */
+function npFileBase(d) { return `Phieu_chuan_bi_hang_${d.kind === "quote" && d.quoteCode ? d.quoteCode : slug(d.name)}_${todayISO()}`; }
+function xpParts(d, noPrice = false) {
   const c = calc(d), isQ = d.kind === "quote";
   const head = `<div class="xp-head"><div class="xp-brand"><img src="${LOGO_BROWN}" alt="Gốm Vũ Gia" style="height:64px;width:auto;display:block"></div>
-    <div class="xp-doc"><div class="k">${isQ ? "Báo giá" : "Báo giá bộ đồ thờ"}</div>
+    <div class="xp-doc"><div class="k">${noPrice ? "Phiếu chuẩn bị hàng" : isQ ? "Báo giá" : "Báo giá bộ đồ thờ"}</div>
     <div class="m">${isQ && d.quoteCode ? `Mã: <b>${esc(d.quoteCode)}</b> · ` : ""}Ngày: <b>${esc(fmtDay(isQ ? d.quoteDate : todayISO()))}</b>${isQ && d.validUntil ? ` · Hiệu lực đến: <b>${esc(fmtDay(d.validUntil))}</b>` : ""}</div></div></div>`;
   const headSmall = `<div class="xp-head" style="padding-bottom:6px"><div class="xp-brand"><img src="${LOGO_BROWN}" alt="Gốm Vũ Gia" style="height:38px;width:auto;display:block"></div><div class="xp-doc"><div class="m">${esc(d.name || "Bộ đồ thờ")}${isQ && d.quoteCode ? " · " + esc(d.quoteCode) : ""} · <i>tiếp theo</i></div></div></div>`;
   const title = `<div class="xp-title"><div><h1>${esc(d.name || "Bộ đồ thờ")}</h1>${d.desc ? `<p>${esc(d.desc)}</p>` : ""}</div>${d.altarSize ? `<p>Kích thước ban thờ: <b style="color:var(--x-ink)">${esc(d.altarSize)}</b></p>` : ""}</div>`;
@@ -24,7 +27,12 @@ function xpParts(d) {
   if (d.otherFee) trs.push(`<div class="xp-tr"><span>${esc(d.otherFeeLabel || "Phụ phí khác")}</span><span class="v">${money(d.otherFee)}</span></div>`);
   const notes = [d.note && `<div><div class="h">Ghi chú</div>${esc(d.note)}</div>`, d.vatNote && `<div style="margin-top:8px"><div class="h">VAT</div>${esc(d.vatNote)}</div>`].filter(Boolean).join("");
   const totals = `<div class="xp-totals"><div class="xp-notes">${notes}</div><div>${trs.join("")}<div class="xp-grand"><span class="l">TỔNG THANH TOÁN</span><span class="v">${money(c.total)}</span></div>${c.missing ? `<div style="text-align:right;color:#B42318;font-size:12px;font-weight:700">Tạm tính — còn sản phẩm chưa có giá</div>` : ""}</div></div>`;
-  return { head, headSmall, title, cust, colg, thead, rows, totals, c };
+  if (noPrice) return { head, headSmall, title, cust: "", c, ncol: 4,
+    colg: `<colgroup><col style="width:44px"><col><col style="width:80px"><col style="width:80px"></colgroup>`,
+    thead: `<thead><tr><th class="c">STT</th><th>Tên sản phẩm và quy cách</th><th class="c">ĐVT</th><th class="c">Số lượng</th></tr></thead>`,
+    rows: d.items.map((l, i) => `<tr><td class="c">${i + 1}</td><td><b style="font-weight:600">${esc(lineTitle(l))}</b>${lineSub(l) ? `<small>${esc(lineSub(l))}</small>` : ""}</td><td class="c">${esc(l.unit)}</td><td class="c"><b>${l.qty}</b></td></tr>`),
+    totals: `<div class="xp-totals"><div class="xp-notes">${d.note ? `<div><div class="h">Ghi chú</div>${esc(d.note)}</div>` : ""}</div><div><div class="xp-grand"><span class="l">TỔNG SỐ LƯỢNG</span><span class="v">${c.count} SP</span></div><div class="xp-tr"><span>${c.lines} dòng sản phẩm</span></div></div></div>` };
+  return { head, headSmall, title, cust, colg, thead, rows, totals, c, ncol: 6 };
 }
 async function sizeXpImage(pg, url, meta) {
   const cell = $(".xp-photo", pg); if (!cell) return;
@@ -38,12 +46,12 @@ async function sizeXpImage(pg, url, meta) {
 async function buildExport(d, single, opts = {}) {
   const stage = $("#xp-stage"); stage.innerHTML = "";
   try { await document.fonts.ready; } catch { }
-  const P = xpParts(d);
+  const P = xpParts(d, opts.noPrice);
   const url = d.imageId ? await imageURL(d.imageId) : null;
   const meta = d.imageId ? await imageMeta(d.imageId) : null;
   if (url) { try { await loadImg(url); } catch { } }
   const photo = url ? `<div class="xp-photo"><img src="${url}" alt="" style="display:none"></div>` : "";
-  const footL = `Gốm Vũ Gia · ${esc(d.kind === "quote" && d.quoteCode ? "Báo giá " + d.quoteCode : (d.name || "Bộ đồ thờ"))}`;
+  const footL = `Gốm Vũ Gia · ${opts.noPrice ? "Phiếu chuẩn bị hàng · " : ""}${esc(d.kind === "quote" && d.quoteCode ? (opts.noPrice ? "" : "Báo giá ") + d.quoteCode : (d.name || "Bộ đồ thờ"))}`;
   const stamp = opts.stamp && P.c.missing ? `<div class="xp-stamp">TẠM TÍNH</div>` : "";
   const ar = meta && meta.w && meta.h ? meta.w / meta.h : 1.33;
   const maxPh = Math.min(470, Math.round(710 / ar));
@@ -85,7 +93,7 @@ async function buildExport(d, single, opts = {}) {
     tb.insertAdjacentHTML("beforeend", r);
     if (over(pg) && tb.children.length > 1) {
       tb.lastElementChild.remove();
-      tb.insertAdjacentHTML("beforeend", `<tr class="cont"><td colspan="6" style="text-align:right">Tiếp theo ở trang sau →</td></tr>`);
+      tb.insertAdjacentHTML("beforeend", `<tr class="cont"><td colspan="${P.ncol}" style="text-align:right">Tiếp theo ở trang sau →</td></tr>`);
       if (over(pg)) tb.lastElementChild.remove();
       pg = mk(false); pg.classList.add("d1"); tb = $("tbody", pg); tb.insertAdjacentHTML("beforeend", r);
     }
@@ -100,8 +108,8 @@ async function buildExport(d, single, opts = {}) {
   await sizeXpImage(pages[0], url, meta);
   return pages;
 }
-function preExport(d) {
-  const iss = blockingIssues(d, true);
+function preExport(d, noPrice = false) {
+  const iss = noPrice ? blockingIssues(d, false).filter(x => x !== calc(d).discErr) : blockingIssues(d, true);
   if (iss.length) { showIssues("Chưa thể xuất báo giá", iss); return false; }
   return true;
 }
@@ -142,18 +150,19 @@ async function writePDF(list, filename, title, share = false) {
     await saveFile(filename, blob, pageImgs, share);
   } catch (e) { busy(); toast("Không tạo được PDF: " + errMsg(e), "bad"); }
 }
+/* opts.noPrice: ảnh không giá gửi nhà xưởng chuẩn bị hàng (xuất được cả khi còn sản phẩm chưa có giá) */
 async function exportPNG(d = S.draft, opts = {}) {
-  if (!preExport(d) || !needLib("png")) return;
-  busy("Đang tạo ảnh PNG…");
+  if (!preExport(d, opts.noPrice) || !needLib("png")) return;
+  busy(opts.noPrice ? "Đang tạo ảnh không giá…" : "Đang tạo ảnh PNG…");
   try {
-    const [pg] = await buildExport(d, true);
+    const [pg] = await buildExport(d, true, { noPrice: opts.noPrice });
     const h = pg.offsetHeight;
     const scale = h * 2.6 > 14000 ? Math.max(1.4, 14000 / h) : 2.6;
     const cv = await snap(pg, scale);
     const blob = await new Promise(r => cv.toBlob(r, "image/png"));
     $("#xp-stage").innerHTML = ""; busy();
     if (!blob) throw new Error("Ảnh quá lớn");
-    await saveFile(fileBase(d) + ".png", blob, null, opts.share);
+    await saveFile((opts.noPrice ? npFileBase(d) : fileBase(d)) + ".png", blob, null, opts.share);
   } catch (e) { busy(); toast("Không tạo được ảnh: " + errMsg(e), "bad"); }
 }
 async function printQuote(d = S.draft) {

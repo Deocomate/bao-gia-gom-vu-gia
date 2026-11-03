@@ -124,6 +124,11 @@ Trên màn hình hẹp (≤ 820px), các mục chuyển xuống **thanh dưới*
 - **Android / Chrome / Edge**: bấm **Cài ứng dụng**, trình duyệt hiện hộp cài đặt.
 Ứng dụng mở toàn màn hình, vẫn cần mạng như bản web. Máy chủ mở công khai `manifest.webmanifest` và `icon-*.png` (không chứa dữ liệu) để trình duyệt cài được trước khi đăng nhập.
 
+## Ảnh không giá gửi nhà xưởng
+Để xưởng chuẩn bị hàng mà không thấy giá: trang Tạo bộ → **Thêm → Tải ảnh không giá (gửi xưởng)** (điện thoại: nút **⋯ → Gửi ảnh không giá cho xưởng**), hoặc nút **Ảnh không giá** ở danh sách Báo giá / Mẫu.
+Ảnh có tiêu đề “Phiếu chuẩn bị hàng”, ảnh ban thờ, tên bộ, kích thước ban thờ, bảng STT – tên và quy cách – ĐVT – số lượng, tổng số lượng và ghi chú.
+Không có đơn giá, thành tiền, giảm giá, phí, ghi chú VAT, thông tin khách; tên file là `Phieu_chuan_bi_hang_<mã báo giá hoặc tên bộ>_<ngày>.png`. Xuất được cả khi còn sản phẩm chưa có giá.
+
 ## Xuất PDF gộp nhiều mẫu
 Ở trang **Mẫu ban thờ**, tích ô ở góc ảnh từng mẫu (hoặc **Chọn tất cả**, áp dụng cho các mẫu đang lọc) rồi bấm **Xuất PDF gộp**.
 File PDF A4 dọc có báo giá của từng mẫu, mỗi mẫu bắt đầu ở trang mới, xếp theo thứ tự tích chọn. Mẫu nào còn sản phẩm chưa có giá thì không xuất được và được nêu tên.
@@ -139,7 +144,7 @@ python tests/run_all.py          # hoặc: python tests/run_all.py t1 t7
 ```
 Các test chạy theo thứ tự và dùng chung dữ liệu máy chủ (t1 đăng nhập, nạp file dữ liệu rồi nhập bảng giá cho các test sau).
 Test tự chạy `server/app.py` ở cổng `8765` (đổi bằng biến `GVG_TEST_PORT`) với tài khoản admin riêng cho test, dữ liệu trong `tests/.output/server/`; kết quả, ảnh chụp nằm trong `tests/.output/`.
-`t6_mobile` giả lập iPhone 390×844 (thanh dưới, vùng chạm ≥ 40px, ô nhập ≥ 16px, tạo bộ, gửi PDF/ảnh, lọc, thẻ báo giá); `t19_pwa` kiểm tra manifest, icon và nút cài ứng dụng.
+`t6_mobile` giả lập iPhone 390×844 (thanh dưới, vùng chạm ≥ 40px, ô nhập ≥ 16px, tạo bộ, gửi PDF/ảnh, lọc, thẻ báo giá); `t19_pwa` kiểm tra manifest, icon và nút cài ứng dụng; `t20_no_price` kiểm tra ảnh không giá.
 File mẫu cho test (CSV, .xls, bảng giá kiểu PDF, ảnh sản phẩm) được `tests/make_fixtures.py` tự tạo khi cần, xem [tests/fixtures/README.md](tests/fixtures/README.md).
 Muốn chạy không cần Internet: đặt `GVG_LIBS` trỏ tới thư mục `node_modules` có `xlsx`, `html2canvas`, `jspdf`.
 

@@ -29,7 +29,7 @@ function renderBuilder() {
       <span class="btn-group"><button class="btn" data-act="save-tpl">Lưu mẫu</button><button class="btn primary" data-act="save-quote">Lưu báo giá</button></span>
       <span class="btn-group"><button class="btn" data-act="preview">Xem trước</button><button class="btn" data-act="pdf">Tải PDF</button></span>
       <details class="menu" id="b-more"><summary class="btn">Thêm ${ICON.down}</summary>
-        <div class="menu-list" role="menu"><button role="menuitem" data-act="png">Tải ảnh PNG</button><button role="menuitem" data-act="print">In báo giá</button><button role="menuitem" data-act="dup">Nhân bản bộ này</button></div>
+        <div class="menu-list" role="menu"><button role="menuitem" data-act="png">Tải ảnh PNG</button><button role="menuitem" data-act="png-np">Tải ảnh không giá (gửi xưởng)</button><button role="menuitem" data-act="print">In báo giá</button><button role="menuitem" data-act="dup">Nhân bản bộ này</button></div>
       </details>
     </div>
   </div>
@@ -367,6 +367,7 @@ async function builderClick(e) {
     case "preview": openPreview(); break;
     case "pdf": exportPDF(); break;
     case "png": exportPNG(); break;
+    case "png-np": exportPNG(d, { noPrice: true }); break;
     case "print": printQuote(); break;
   }
 }
@@ -424,6 +425,7 @@ function builderMenu() {
   actionSheet(modeTitle(d), [
     { text: isQ ? "Gửi báo giá (PDF)" : "Gửi PDF", sub: "Zalo, Tin nhắn, Mail hoặc lưu vào máy", icon: ICON.share, cls: "primary", run: () => exportPDF(d, { share: true }) },
     { text: "Gửi ảnh báo giá (PNG)", sub: "Khách xem nhanh ngay trong khung chat", icon: ICON.img, run: () => exportPNG(d, { share: true }) },
+    { text: "Gửi ảnh không giá cho xưởng", sub: "Chỉ tên, quy cách, số lượng – không có giá", icon: ICON.img, run: () => exportPNG(d, { share: true, noPrice: true }) },
     { text: "Xem trước bản A4", icon: ICON.doc, run: () => openPreview(d) },
     !isQ && { text: "Lập báo giá cho khách", sub: "Thêm tên, số điện thoại khách hàng", icon: ICON.plus, run: toQuote },
     { text: "Lưu thành mẫu", icon: ICON.grid, run: saveTemplate },
