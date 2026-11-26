@@ -174,7 +174,9 @@ class Store:
 
     def sync_prices(self, path):
         """Cập nhật bảng giá theo file bảng giá gốc đóng kèm bản deploy, mỗi phiên bản file chỉ áp dụng một lần.
-        Mã đã có: đổi giá (file để trống giá thì giữ giá cũ). Mã chưa có: thêm mới. Không xóa gì, không đụng mẫu/báo giá.
+        Mã chưa có: thêm mới. Mã đã có: chỉ đổi giá khi giá trong file khác giá của file đã áp dụng lần trước,
+        nên giá sửa trong ứng dụng không bị file ghi đè khi file chỉ thêm sản phẩm (file để trống giá thì giữ giá cũ).
+        Chưa lưu giá của file lần trước (bản deploy cũ) thì chỉ thêm mã mới. Không xóa gì, không đụng mẫu/báo giá.
         Kho chưa có sản phẩm nào (máy chủ mới) thì bỏ qua – dữ liệu được nạp bằng file sao lưu."""
         if not os.path.exists(path):
             return None
@@ -183,18 +185,22 @@ class Store:
         sha = hashlib.sha256(raw).hexdigest()
         with self.lock:
             done = self.db.execute("SELECT v FROM settings WHERE k='price_file_sha'").fetchone()
+            prev = self.db.execute("SELECT v FROM settings WHERE k='price_file_prices'").fetchone()
             empty = not self.db.execute("SELECT EXISTS(SELECT 1 FROM docs WHERE store='products')").fetchone()[0]
         if (done and done[0] == sha) or empty:
             return None
+        prev = json.loads(prev[0]) if prev else None
         now = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
         current = {p["code"]: p for p in self.all("products")}
+        variants = json.loads(raw.decode("utf-8"))["variants"]
         ops, changed, added = [], 0, 0
-        for v in json.loads(raw.decode("utf-8"))["variants"]:
+        for v in variants:
             p = current.get(v["code"])
             if p is None:
                 ops.append({"op": "put", "store": "products", "obj": {**v, "image": None, "createdAt": now, "updatedAt": now}})
                 added += 1
-            elif v["price"] is not None and p.get("price") != v["price"]:
+            elif (v["price"] is not None and p.get("price") != v["price"]
+                  and prev is not None and prev.get(v["code"], -1) != v["price"]):
                 ops.append({"op": "put", "store": "products", "obj": {**p, "price": v["price"], "updatedAt": now}})
                 changed += 1
         with self.lock:
@@ -203,6 +209,8 @@ class Store:
         self.apply(ops)
         with self.lock:
             self.db.execute("INSERT OR REPLACE INTO settings(k, v) VALUES('price_file_sha', ?)", (sha,))
+            self.db.execute("INSERT OR REPLACE INTO settings(k, v) VALUES('price_file_prices', ?)",
+                            (json.dumps({v["code"]: v["price"] for v in variants}),))
         return f"Cập nhật bảng giá: đổi giá {changed} mã, thêm {added} mã"
 
     def _snapshot(self, prefix="truoc-khoi-phuc-"):
