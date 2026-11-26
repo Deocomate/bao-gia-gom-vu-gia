@@ -23,12 +23,13 @@ src/                 Mã nguồn giao diện
   js/9_start.js      Khởi chạy
 data/
   Bang_gia_mau_Gom_Vu_Gia.xlsx   File Excel mẫu chép từ bảng giá PDF (2 kiểu sheet), nhúng vào trang để tải về
-  pdf_data.json                  236 biến thể – bảng giá gốc, dùng khi xuất file dữ liệu và tự cập nhật giá khi deploy
+  pdf_data.json                  673 biến thể (men lam, men rạn, men hoàng thổ, hoàng thổ vẽ vàng) – bảng giá gốc, dùng khi xuất file dữ liệu và tự cập nhật giá khi deploy
   demo_altar.jpg                 Ảnh ban thờ của mẫu “Bộ Phúc Liên Hoa – vẽ vàng” trong file dữ liệu
   logo_*.png                     Logo (logo_brown.png cũng là favicon)
   icon-*.png                     Icon vuông khi cài ứng dụng lên màn hình chính (tạo bằng tools/make_icons.py)
 tools/
-  pdf_data.py        Dữ liệu chép tay từ PDF
+  pdf_data.py        Dữ liệu chép tay từ PDF men lam, gộp thêm pdf_data_mr_ht.py
+  pdf_data_mr_ht.py  Dữ liệu chép tay từ PDF men rạn và men hoàng thổ / hoàng thổ vẽ vàng (giữ mã MR…, HT… của PDF)
   make_xlsx.py       Tạo lại file Excel mẫu + pdf_data.json
   make_icons.py      Tạo lại data/icon-*.png từ logo (cần Pillow)
   build.py           Gộp src + data thành dist/ (index.html, login.html, favicon.png, manifest + icon cài ứng dụng)
@@ -80,7 +81,7 @@ Toàn bộ bảng giá, mẫu, báo giá, ảnh và bản nháp lưu **trên má
 Máy chủ mới **không có sẵn dữ liệu nào**: không còn kiểu tự nạp hay hiện dữ liệu mẫu. Dữ liệu được nạp bằng file sao lưu `.json`.
 
 ### Đưa dữ liệu lên production
-1. Tạo file dữ liệu chính thức (bảng giá gốc 236 sản phẩm + mẫu “Bộ Phúc Liên Hoa – vẽ vàng” kèm ảnh):
+1. Tạo file dữ liệu chính thức (bảng giá gốc 673 sản phẩm + mẫu “Bộ Phúc Liên Hoa – vẽ vàng” kèm ảnh):
    ```
    python tools/export_data.py      # -> exports/gom-vu-gia-du-lieu-<ngày>.json
    ```
@@ -97,9 +98,11 @@ Nếu đã sửa bảng giá, mẫu, báo giá trên **bản cũ** (bản lưu n
 ### Cập nhật giá khi deploy
 Bảng giá gốc `data/pdf_data.json` (tạo từ `tools/pdf_data.py` bằng `python tools/make_xlsx.py`) được đóng kèm bản deploy.
 Khi khởi động, nếu file này khác lần trước, máy chủ tự chụp dữ liệu vào `DATA_DIR/backups/truoc-cap-nhat-gia-*.sqlite3` rồi cập nhật theo mã sản phẩm:
-mã đã có thì đổi giá (ô giá để trống trong file thì giữ giá cũ), mã chưa có thì thêm mới; không xóa sản phẩm.
+mã chưa có thì thêm mới; mã đã có chỉ đổi giá khi giá của mã đó trong file khác bản file đã áp dụng lần trước (ô giá để trống trong file thì giữ giá cũ), nên giá đã sửa trong ứng dụng không bị ghi đè khi file chỉ thêm sản phẩm; không xóa sản phẩm.
+Máy chủ deploy từ bản cũ (chưa lưu giá của file lần trước) thì lần đầu chỉ thêm mã mới, không đổi giá mã đã có.
 Mẫu và báo giá đã lưu tự dùng giá mới ở lần mở ứng dụng kế tiếp (trừ dòng đã sửa giá tay). Mỗi phiên bản file chỉ áp dụng một lần, nên giá sửa trong ứng dụng sau đó được giữ qua các lần khởi động lại.
 Máy chủ chưa có sản phẩm nào thì bỏ qua bước này.
+Ví dụ: thêm men rạn và men hoàng thổ chỉ cần sửa `tools/pdf_data_mr_ht.py`, chạy `python tools/make_xlsx.py`, commit `data/pdf_data.json` rồi push – Coolify deploy lại và máy chủ tự thêm các mã mới.
 
 Mỗi lần **Thay thế toàn bộ**, máy chủ tự chụp lại dữ liệu cũ vào `DATA_DIR/backups/` (giữ 10 bản gần nhất).
 Nhãn góc phải thanh trên cùng cho biết lần xuất sao lưu gần nhất và chuyển màu vàng khi đã quá 7 ngày chưa sao lưu.

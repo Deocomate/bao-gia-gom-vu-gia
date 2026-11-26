@@ -18,7 +18,8 @@ ws0 = wb.active
 ws0.title = "Hướng dẫn"
 lines = [
  ("FILE EXCEL MẪU – BẢNG GIÁ GỐM VŨ GIA", True),
- ("Nguồn: chép từ PDF “Báo giá sản phẩm đồ thờ men lam – Bộ đồ thờ Phúc Liên Hoa”. Hãy kiểm tra lại giá trước khi dùng chính thức.", False),
+ ("Nguồn: chép từ PDF “Báo giá sản phẩm đồ thờ men lam – Bộ đồ thờ Phúc Liên Hoa”, “Bảng giá GVG - Men rạn” và “Bảng giá GVG - Men hoàng thổ & Hoàng thổ vẽ vàng”. Hãy kiểm tra lại giá trước khi dùng chính thức.", False),
+ ("Men rạn và men hoàng thổ giữ đúng mã sản phẩm của PDF (MR…, HT…); chỉ có trong sheet biến thể, sheet 2 cột giá chỉ gồm men lam.", False),
  ("", False),
  ("Sheet “Bảng giá theo biến thể”: mỗi dòng là một biến thể (quy cách × dòng men), có Mã cố định. Đây là định dạng ứng dụng xuất ra và nhập lại.", False),
  ("Sheet “Bảng giá 2 cột giá”: giống bố cục PDF, giá Men lam và Men lam vẽ vàng nằm ở 2 cột. Khi nhập, chọn cả 2 cột giá để ứng dụng tách thành biến thể.", False),
@@ -33,6 +34,7 @@ lines = [
  ("• Ba dòng “Chân đế” trong PDF (mục Bộ đỉnh hạc, Bộ trà thờ, Bộ rượu cúng) được đổi tên thành Chân đế đỉnh / Chân đế bộ trà / Chân đế bộ rượu để không bị trùng.", False),
  ("• PDF ghi giá vàng kim = 0 cho Bóng đèn và Bộ đũa gỗ: sheet biến thể để trống giá và đặt Ngừng dùng; sheet 2 cột giữ số 0 như PDF (ứng dụng sẽ báo giá không hợp lệ).", False),
  ("• Cột VÀNG KIM trong PDF được hiểu là dòng men “Men lam vẽ vàng”.", False),
+ ("• PDF hoàng thổ ghi HT065 (Lọ lộc bình béo Phúc Đức H60) giá 107.500.000, cao hơn cả giá vẽ vàng: để trống giá và đặt Ngừng dùng, cần kiểm tra.", False),
 ]
 for i, (t, bold) in enumerate(lines, 1):
     c = ws0.cell(row=i, column=1, value=t)
@@ -52,7 +54,7 @@ def header(ws, row, cols, widths):
 
 # Sheet 1: biến thể
 ws = wb.create_sheet("Bảng giá theo biến thể")
-ws["A1"] = "BẢNG GIÁ ĐỒ THỜ MEN LAM – BỘ PHÚC LIÊN HOA (chép từ PDF)"
+ws["A1"] = "BẢNG GIÁ ĐỒ THỜ GỐM VŨ GIA – MEN LAM, MEN RẠN, MEN HOÀNG THỔ (chép từ PDF)"
 ws["A1"].font = Font(name=F, bold=True, size=13, color="1F3D8A")
 ws["A2"] = "Dòng tiêu đề cột ở dòng 4. Đơn giá tính bằng đồng (đ)."
 ws["A2"].font = Font(name=F, italic=True, color="555555")

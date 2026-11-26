@@ -14,9 +14,11 @@ const HDR_RX = {
   note: /(ghi chu|mo ta)/,
   status: /(trang thai|tinh trang)/
 };
-const PRICE_RX = /(gia|men lam|vang kim|ve vang|price)/;
+const PRICE_RX = /(gia|men lam|men ran|hoang tho|vang kim|ve vang|price)/;
 function guessGlazeFromHeader(h) {
   const n = norm(h);
+  if (/hoang tho/.test(n)) return /vang/.test(n) ? "Men hoàng thổ vẽ vàng" : "Men hoàng thổ";
+  if (/men ran/.test(n)) return "Men rạn";
   if (/(ve vang|vang kim|vang)/.test(n)) return "Men lam vẽ vàng";
   if (/(men lam|thuong)/.test(n)) return "Men lam";
   return "";

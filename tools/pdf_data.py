@@ -1,6 +1,8 @@
 # Dữ liệu chép từ PDF "Báo giá sản phẩm đồ thờ men lam – Bộ đồ thờ Phúc Liên Hoa" (GVG.B_ MEN LAM.pdf)
 # Mỗi sản phẩm: (mục PDF, nhóm, tên, họa tiết, ĐVT, [(quy cách, giá men lam, giá vàng kim, ghi chú)], ghi chú chung)
 # Giá cập nhật theo file "GVG. BẢNG GIÁ MEN LAM.xlsx" (10/2026): giá men lam mới; mục Long Phụng trong file chưa có giá nên chưa đưa vào
+import pdf_data_mr_ht
+
 ML = "Men lam"
 VV = "Men lam vẽ vàng"
 
@@ -130,8 +132,15 @@ def variants():
                     nn = "; ".join(x for x in [n, "PDF ghi giá 0 – để trống, cần kiểm tra"] if x)
                 out.append(dict(code=code, group=grp, name=name, pattern=pat, size=size, glaze=glaze,
                                 unit=unit, price=price, note=nn, active=active, ord=ord_))
+    # Men rạn, men hoàng thổ, hoàng thổ vẽ vàng: mã lấy đúng theo PDF
+    for code, grp, name, pat, size, glaze, unit, price, note in pdf_data_mr_ht.rows():
+        assert code not in seen, code
+        seen.add(code)
+        ord_ += 1
+        out.append(dict(code=code, group=grp, name=name, pattern=pat, size=size, glaze=glaze,
+                        unit=unit, price=price, note=note, active=price is not None, ord=ord_))
     return out
 
 if __name__ == "__main__":
     v = variants()
-    print(len(P), "sản phẩm,", len(wide_rows()), "quy cách,", len(v), "biến thể")
+    print(len(P), "sản phẩm men lam,", len(wide_rows()), "quy cách men lam,", len(v), "biến thể tất cả dòng men")
